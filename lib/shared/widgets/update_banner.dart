@@ -12,10 +12,12 @@ class UpdateBanner extends StatefulWidget {
   const UpdateBanner({
     super.key,
     required this.update,
+    this.currentVersionCode = 1,
     required this.onDismiss,
   });
 
   final AppUpdate update;
+  final int currentVersionCode;
   final VoidCallback onDismiss;
 
   @override
@@ -75,7 +77,11 @@ class _UpdateBannerState extends State<UpdateBanner>
           borderRadius: BorderRadius.circular(18),
           child: InkWell(
             borderRadius: BorderRadius.circular(18),
-            onTap: () => UpdateDialog.show(context, widget.update),
+            onTap: () => UpdateDialog.show(
+              context,
+              widget.update,
+              currentVersionCode: widget.currentVersionCode,
+            ),
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 14, 8, 14),
               child: Row(
@@ -100,7 +106,9 @@ class _UpdateBannerState extends State<UpdateBanner>
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Update available — v${widget.update.latestVersion}',
+                          widget.update.isMandatory(widget.currentVersionCode)
+                              ? 'Required update — v${widget.update.latestVersion}'
+                              : 'Update available — v${widget.update.latestVersion}',
                           style: tt.titleSmall?.copyWith(
                             color: Colors.white,
                             fontWeight: FontWeight.w700,
@@ -108,7 +116,9 @@ class _UpdateBannerState extends State<UpdateBanner>
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          'Tap to download and install',
+                          widget.update.apkSha256 != null
+                              ? 'Verified SHA-256 build • Tap to install'
+                              : 'Tap to download and install',
                           style: tt.bodySmall?.copyWith(
                             color: Colors.white.withValues(alpha: 0.85),
                           ),
@@ -116,8 +126,8 @@ class _UpdateBannerState extends State<UpdateBanner>
                       ],
                     ),
                   ),
-                  // Dismiss button (only if not forced)
-                  if (!widget.update.forceUpdate)
+                  // Dismiss button (only if not mandatory)
+                  if (!widget.update.isMandatory(widget.currentVersionCode))
                     IconButton(
                       icon: const Icon(Icons.close_rounded,
                           color: Colors.white, size: 18),

@@ -9,6 +9,8 @@ import '../../core/providers/providers.dart';
 import '../../core/providers/app_settings_provider.dart';
 import '../../core/services/biometric_service.dart';
 import '../../core/services/export_service.dart';
+import '../../core/providers/sync_provider.dart';
+import '../../core/services/sync_engine_service.dart';
 import 'widgets/health_baseline_sheet.dart';
 
 /// Profile and privacy settings screen.
@@ -202,6 +204,13 @@ class ProfileScreen extends ConsumerWidget {
               ),
             ],
           ),
+
+          const SizedBox(height: 20),
+
+          // ── Real-Time Cloud Sync & Security ──────────────────────────
+          const _SectionTitle('Cloud sync & security'),
+          const SizedBox(height: 12),
+          const _SyncStatusCard(),
 
           const SizedBox(height: 20),
 
@@ -772,6 +781,146 @@ class _BiometricToggleRowState extends State<_BiometricToggleRow> {
         ],
       ),
     );
+  }
+}
+
+// ── Cloud Sync Status Card ───────────────────────────────────────────────────
+
+class _SyncStatusCard extends ConsumerWidget {
+  const _SyncStatusCard();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final syncState = ref.watch(syncProvider);
+    final tt = Theme.of(context).textTheme;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: KholoColors.cream,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: KholoColors.divider),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: _statusColor(syncState.status).withValues(alpha: 0.15),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  _statusIcon(syncState.status),
+                  color: _statusColor(syncState.status),
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      syncState.statusDisplay,
+                      style: tt.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: KholoColors.ink,
+                      ),
+                    ),
+                    Text(
+                      syncState.lastSyncedAt != null
+                          ? 'Last synced ${_formatSyncTime(syncState.lastSyncedAt!)}'
+                          : 'Local changes are preserved offline',
+                      style: tt.bodySmall?.copyWith(color: KholoColors.inkMuted),
+                    ),
+                  ],
+                ),
+              ),
+              if (syncState.status == SyncStatus.syncing)
+                const SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: KholoColors.wine,
+                  ),
+                )
+              else
+                IconButton(
+                  icon: const Icon(Icons.sync_rounded, color: KholoColors.wine),
+                  tooltip: 'Sync now',
+                  onPressed: () {
+                    HapticFeedback.selectionClick();
+                    ref.read(syncProvider.notifier).triggerSync();
+                  },
+                ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: KholoColors.lavenderLight,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.shield_outlined, size: 14, color: KholoColors.plum),
+                const SizedBox(width: 6),
+                Text(
+                  'End-to-end device storage integrity',
+                  style: tt.labelSmall?.copyWith(
+                    color: KholoColors.plum,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  static Color _statusColor(SyncStatus status) {
+    switch (status) {
+      case SyncStatus.synced:
+      case SyncStatus.idle:
+        return const Color(0xFF2E7D32);
+      case SyncStatus.syncing:
+        return KholoColors.wine;
+      case SyncStatus.offline:
+        return const Color(0xFFE65100);
+      case SyncStatus.error:
+        return KholoColors.error;
+    }
+  }
+
+  static IconData _statusIcon(SyncStatus status) {
+    switch (status) {
+      case SyncStatus.synced:
+      case SyncStatus.idle:
+        return Icons.cloud_done_outlined;
+      case SyncStatus.syncing:
+        return Icons.cloud_sync_outlined;
+      case SyncStatus.offline:
+        return Icons.cloud_off_outlined;
+      case SyncStatus.error:
+        return Icons.error_outline_rounded;
+    }
+  }
+
+  static String _formatSyncTime(DateTime dt) {
+    final diff = DateTime.now().toUtc().difference(dt);
+    if (diff.inMinutes < 1) return 'just now';
+    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
+    if (diff.inHours < 24) return '${diff.inHours}h ago';
+    return '${dt.day}/${dt.month}/${dt.year}';
   }
 }
 

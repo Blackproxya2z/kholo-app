@@ -10,6 +10,8 @@ import 'package:kholo/features/landing/landing_screen.dart';
 import 'package:kholo/features/today/today_screen.dart';
 import 'package:kholo/shared/widgets/phase_card.dart';
 
+import 'package:kholo/core/providers/app_settings_provider.dart';
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -60,6 +62,7 @@ void main() {
         ProviderScope(
           overrides: [
             sharedPrefsProvider.overrideWithValue(prefs),
+            appSettingsProvider.overrideWith((ref) => AppSettingsNotifier(prefs)),
           ],
           child: MaterialApp(
             theme: KholoTheme.light,
@@ -77,11 +80,12 @@ void main() {
         ProviderScope(
           overrides: [
             sharedPrefsProvider.overrideWithValue(prefs),
+            appSettingsProvider.overrideWith((ref) => AppSettingsNotifier(prefs)),
           ],
           child: const KholoApp(),
         ),
       );
-      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pump(const Duration(milliseconds: 500));
 
       expect(find.text('KHOLO'), findsWidgets);
     });

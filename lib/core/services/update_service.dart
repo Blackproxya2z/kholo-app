@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:crypto/crypto.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:open_filex/open_filex.dart';
@@ -9,38 +10,25 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:http/http.dart' as http;
 import '../models/app_update.dart';
 
-/// ─── HOW TO USE THIS SYSTEM ───────────────────────────────────────────────
-///
-/// 1. Build your new APK:
-///      flutter build apk --release
-///
-/// 2. Upload APK to a GitHub Release:
-///    - Go to github.com → your repo → Releases → "New release"
-///    - Tag: v1.1.0, upload the APK
-///    - Copy the APK direct download URL
-///
-/// 3. Host version.json (one-time setup):
-///    - Create a public GitHub repo e.g. "kholo-releases"
-///    - Add a "version.json" file with the JSON below
-///    - Use the raw GitHub URL in [versionManifestUrl]
-///
-/// 4. Update version.json when you release:
-///    {
-///      "latestVersion": "1.1.0",
-///      "versionCode": 2,
-///      "releaseNotes": "• Bug fixes\n• Improved dashboard",
-///      "apkUrl": "https://github.com/YOUR_USER/kholo-releases/releases/download/v1.1.0/kholo.apk",
-///      "forceUpdate": false
-///    }
-///
-/// 5. Update pubspec.yaml version: 1.1.0+2
-///    Users on v1.0.0 will see the update banner automatically!
-/// ──────────────────────────────────────────────────────────────────────────
+/// Custom exception thrown when an APK fails cryptographic checksum validation.
+class SecurityIntegrityException implements Exception {
+  final String message;
+  const SecurityIntegrityException(this.message);
 
+  @override
+  String toString() => 'SecurityIntegrityException: $message';
+}
+
+/// ─── IN-APP AUTO-UPDATE & ANTI-TAMPER ENGINE ────────────────────────────────
+///
+/// Features:
+/// 1. Zero-Rate-Limit GitHub Raw / Cloudflare cached version polling.
+/// 2. Cryptographic SHA-256 streaming checksum validation.
+/// 3. In-place upgrade via Android PackageInstaller (preserving all local data).
+/// 4. Anti-tampering defense (deletes corrupted/manipulated binaries immediately).
+/// ────────────────────────────────────────────────────────────────────────────
 class UpdateService {
-  /// 🔗 REPLACE THIS with your actual GitHub raw version.json URL.
-  /// Example:
-  /// "https://raw.githubusercontent.com/azmain-kholo/releases/main/version.json"
+  /// GitHub raw version manifest endpoint (cached and CDN-backed).
   static const String versionManifestUrl =
       'https://raw.githubusercontent.com/Blackproxya2z/kholo-releases/main/version.json';
 
@@ -54,7 +42,13 @@ class UpdateService {
       final currentCode = int.tryParse(info.buildNumber) ?? 1;
 
       final response = await http
-          .get(Uri.parse(versionManifestUrl))
+          .get(
+            Uri.parse(versionManifestUrl),
+            headers: {
+              'Accept': 'application/json',
+              'Cache-Control': 'no-cache',
+            },
+          )
           .timeout(const Duration(seconds: 8));
 
       if (response.statusCode != 200) return null;
@@ -74,24 +68,61 @@ class UpdateService {
     }
   }
 
-  /// Downloads the APK at [apkUrl] and reports progress via [onProgress].
-  /// Returns the local file path on success, null on failure.
+  /// Calculates SHA-256 hash using chunked stream without loading whole APK into memory.
+  static Future<String> calculateSha256(File file) async {
+    final stream = file.openRead();
+    final digest = await sha256.bind(stream).first;
+    return digest.toString().toLowerCase();
+  }
+
+  /// Validates file integrity against expected SHA-256 checksum string.
+  static Future<bool> verifyChecksum(File file, String expectedSha256) async {
+    if (!await file.exists()) return false;
+    final cleanExpected = expectedSha256.trim().toLowerCase();
+    if (cleanExpected.isEmpty) return true;
+
+    final actualSha256 = await calculateSha256(file);
+    final isValid = actualSha256 == cleanExpected;
+
+    if (!isValid) {
+      debugPrint('[UpdateService] SHA-256 Mismatch!');
+      debugPrint('   Expected: $cleanExpected');
+      debugPrint('   Actual:   $actualSha256');
+    }
+
+    return isValid;
+  }
+
+  /// Downloads the APK at [apkUrl], tracks progress, and executes SHA-256 verification.
+  ///
+  /// If SHA-256 fails or file is manipulated, the file is deleted immediately and
+  /// [SecurityIntegrityException] is reported.
   static Future<String?> downloadApk(
     String apkUrl, {
+    String? expectedSha256,
     required ValueChanged<double> onProgress,
+    ValueChanged<String>? onStatusChange,
   }) async {
     try {
-      // Request INSTALL_PACKAGES permission (Android 8+)
+      // Request install permission on Android 8.0+
       if (Platform.isAndroid) {
         final status = await Permission.requestInstallPackages.request();
         if (!status.isGranted) {
-          debugPrint('[UpdateService] Install permission denied.');
+          debugPrint('[UpdateService] Install permission not granted.');
           return null;
         }
       }
 
       final tempDir = await getTemporaryDirectory();
-      final savePath = '${tempDir.path}/kholo_update.apk';
+      final savePath = '${tempDir.path}/kholo_update_staged.apk';
+      final file = File(savePath);
+
+      // Delete any previous staged file
+      if (await file.exists()) {
+        await file.delete();
+      }
+
+      onStatusChange?.call('Downloading update...');
 
       final dio = Dio();
       await dio.download(
@@ -106,26 +137,53 @@ class UpdateService {
         ),
       );
 
+      // Verify SHA-256 Checksum if provided
+      if (expectedSha256 != null && expectedSha256.trim().isNotEmpty) {
+        onStatusChange?.call('Verifying integrity (SHA-256)...');
+        final isVerified = await verifyChecksum(file, expectedSha256);
+
+        if (!isVerified) {
+          // Immediately wipe tampered payload
+          if (await file.exists()) {
+            await file.delete();
+          }
+          throw const SecurityIntegrityException(
+            'APK integrity check failed! Binary may be tampered or corrupted.',
+          );
+        }
+      }
+
       return savePath;
     } catch (e) {
       debugPrint('[UpdateService] downloadApk error: $e');
-      return null;
+      rethrow;
     }
   }
 
-  /// Triggers the Android system install prompt for the APK at [filePath].
-  static Future<void> installApk(String filePath) async {
-    final result = await OpenFilex.open(filePath);
-    debugPrint('[UpdateService] openFilex result: ${result.type}');
+  /// Triggers the Android system package installer for an in-place upgrade.
+  /// Existing user data, SQLite records, and SharedPreferences are preserved.
+  static Future<OpenResult> installApk(String filePath) async {
+    debugPrint('[UpdateService] Triggering in-place installation: $filePath');
+    return await OpenFilex.open(filePath, type: 'application/vnd.android.package-archive');
   }
 
-  /// Returns current app version string, e.g. "1.0.0 (build 1)"
+  /// Returns current app version display string, e.g. "1.0.0 (build 1)"
   static Future<String> currentVersionDisplay() async {
     try {
       final info = await PackageInfo.fromPlatform();
       return '${info.version} (build ${info.buildNumber})';
     } catch (_) {
       return '1.0.0 (build 1)';
+    }
+  }
+
+  /// Returns current app versionCode integer
+  static Future<int> currentVersionCode() async {
+    try {
+      final info = await PackageInfo.fromPlatform();
+      return int.tryParse(info.buildNumber) ?? 1;
+    } catch (_) {
+      return 1;
     }
   }
 }

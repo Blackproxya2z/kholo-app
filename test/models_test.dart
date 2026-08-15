@@ -5,6 +5,9 @@ import 'package:kholo/core/models/baby_profile.dart';
 import 'package:kholo/core/models/pregnancy_profile.dart';
 import 'package:kholo/core/models/product.dart';
 import 'package:kholo/core/models/cart_item.dart';
+import 'package:kholo/core/models/app_update.dart';
+import 'package:kholo/core/models/sync_models.dart';
+import 'package:kholo/core/services/sync_engine_service.dart';
 import 'package:kholo/core/services/dynamic_config_service.dart';
 
 void main() {
@@ -154,6 +157,78 @@ void main() {
       expect(decoded.schemaVersion, 1);
       expect(decoded.phaseTips.first.phaseKey, 'menstrual');
       expect(decoded.featureFlags['animated_cycle_ring'], isTrue);
+    });
+
+    test('AppUpdate parses PRD snake_case schema with SHA-256 and minRequiredVersionCode', () {
+      final prdJson = {
+        'latest_version': '2.1.0',
+        'version_code': 21,
+        'min_required_version_code': 15,
+        'download_url': 'https://github.com/Blackproxya2z/kholo-app/releases/download/v2.1.0/app-release.apk',
+        'apk_sha256': 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
+        'release_notes': 'Security patches and UI performance upgrades.',
+      };
+
+      final update = AppUpdate.fromJson(prdJson);
+      expect(update.latestVersion, '2.1.0');
+      expect(update.versionCode, 21);
+      expect(update.minRequiredVersionCode, 15);
+      expect(update.apkUrl, contains('app-release.apk'));
+      expect(update.apkSha256, 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855');
+      expect(update.releaseNotes, 'Security patches and UI performance upgrades.');
+
+      // Mandatory check: installed build 10 is below min 15 -> must force
+      expect(update.isMandatory(10), isTrue);
+      // Installed build 16 is above min 15 -> optional update
+      expect(update.isMandatory(16), isFalse);
+    });
+
+    test('SyncQueueItem serialization and SyncEngine LWW conflict resolution', () {
+      final queueItem = SyncQueueItem(
+        queueId: 'q-101',
+        collection: SyncCollection.cycleLogs,
+        recordId: 'log-1',
+        action: SyncAction.create,
+        payload: {'flow': 'heavy', 'mood': 'great'},
+        clientTimestamp: DateTime.utc(2026, 8, 16, 4, 0, 0),
+      );
+
+      final json = queueItem.toJson();
+      final decoded = SyncQueueItem.fromJson(json);
+      expect(decoded.queueId, 'q-101');
+      expect(decoded.collection, SyncCollection.cycleLogs);
+      expect(decoded.action, SyncAction.create);
+      expect(decoded.payload['flow'], 'heavy');
+
+      // Test Last-Write-Wins (LWW) conflict resolution
+      final olderLocal = {
+        'id': 'rec-1',
+        'notes': 'Old note',
+        'updated_at': '2026-08-15T10:00:00.000Z',
+      };
+      final newerRemote = {
+        'id': 'rec-1',
+        'notes': 'New remote note',
+        'updated_at': '2026-08-16T12:00:00.000Z',
+      };
+
+      final result1 = SyncEngineService.resolveConflictLWW(
+        localRecord: olderLocal,
+        remoteRecord: newerRemote,
+      );
+      expect(result1['notes'], 'New remote note');
+
+      // If local is newer than remote (offline local modification wins)
+      final newerLocal = {
+        'id': 'rec-1',
+        'notes': 'Offline edited note',
+        'updated_at': '2026-08-16T14:00:00.000Z',
+      };
+      final result2 = SyncEngineService.resolveConflictLWW(
+        localRecord: newerLocal,
+        remoteRecord: newerRemote,
+      );
+      expect(result2['notes'], 'Offline edited note');
     });
   });
 }

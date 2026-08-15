@@ -6,6 +6,9 @@ import '../models/pregnancy_profile.dart';
 import '../models/baby_profile.dart';
 import '../models/cart_item.dart';
 
+import '../models/sync_models.dart';
+import 'sync_engine_service.dart';
+
 /// Keys for SharedPreferences.
 class _Keys {
   static const authUser = 'kholo_auth_user';
@@ -19,12 +22,15 @@ class _Keys {
   static const dynamicConfig = 'kholo_dynamic_config';
 }
 
-/// Simple local-persistence layer backed by SharedPreferences.
-/// In production this would be replaced by a server-side persistence layer.
+/// Simple local-persistence layer backed by SharedPreferences with
+/// automatic offline sync queueing.
 class LocalStorageService {
   final SharedPreferences _prefs;
+  late final SyncEngineService _syncEngine;
 
-  LocalStorageService(this._prefs);
+  LocalStorageService(this._prefs) {
+    _syncEngine = SyncEngineService(_prefs);
+  }
 
   // ── Auth ──────────────────────────────────────────────────────────────────
 
@@ -43,8 +49,15 @@ class LocalStorageService {
     return HealthProfile.fromJson(jsonDecode(raw) as Map<String, dynamic>);
   }
 
-  Future<void> saveHealthProfile(HealthProfile profile) =>
-      _prefs.setString(_Keys.healthProfile, jsonEncode(profile.toJson()));
+  Future<void> saveHealthProfile(HealthProfile profile) async {
+    await _prefs.setString(_Keys.healthProfile, jsonEncode(profile.toJson()));
+    await _syncEngine.enqueueChange(
+      collection: SyncCollection.healthProfile,
+      recordId: 'primary',
+      action: SyncAction.update,
+      payload: profile.toJson(),
+    );
+  }
 
   // ── Cycle logs ────────────────────────────────────────────────────────────
 
@@ -67,6 +80,12 @@ class LocalStorageService {
       _Keys.cycleLogs,
       jsonEncode(logs.map((l) => l.toJson()).toList()),
     );
+    await _syncEngine.enqueueChange(
+      collection: SyncCollection.cycleLogs,
+      recordId: log.id,
+      action: idx >= 0 ? SyncAction.update : SyncAction.create,
+      payload: log.toJson(),
+    );
   }
 
   Future<void> deleteCycleLog(String id) async {
@@ -74,6 +93,12 @@ class LocalStorageService {
     await _prefs.setString(
       _Keys.cycleLogs,
       jsonEncode(logs.map((l) => l.toJson()).toList()),
+    );
+    await _syncEngine.enqueueChange(
+      collection: SyncCollection.cycleLogs,
+      recordId: id,
+      action: SyncAction.delete,
+      payload: {'id': id},
     );
   }
 
@@ -85,10 +110,25 @@ class LocalStorageService {
     return PregnancyProfile.fromJson(jsonDecode(raw) as Map<String, dynamic>);
   }
 
-  Future<void> savePregnancyProfile(PregnancyProfile profile) =>
-      _prefs.setString(_Keys.pregnancyProfile, jsonEncode(profile.toJson()));
+  Future<void> savePregnancyProfile(PregnancyProfile profile) async {
+    await _prefs.setString(_Keys.pregnancyProfile, jsonEncode(profile.toJson()));
+    await _syncEngine.enqueueChange(
+      collection: SyncCollection.pregnancyProfile,
+      recordId: 'primary',
+      action: SyncAction.update,
+      payload: profile.toJson(),
+    );
+  }
 
-  Future<void> clearPregnancyProfile() => _prefs.remove(_Keys.pregnancyProfile);
+  Future<void> clearPregnancyProfile() async {
+    await _prefs.remove(_Keys.pregnancyProfile);
+    await _syncEngine.enqueueChange(
+      collection: SyncCollection.pregnancyProfile,
+      recordId: 'primary',
+      action: SyncAction.delete,
+      payload: {},
+    );
+  }
 
   // ── Pregnancy logs ────────────────────────────────────────────────────────
 
@@ -112,6 +152,12 @@ class LocalStorageService {
     await _prefs.setString(
       _Keys.pregnancyLogs,
       jsonEncode(logs.map((l) => l.toJson()).toList()),
+    );
+    await _syncEngine.enqueueChange(
+      collection: SyncCollection.pregnancyLogs,
+      recordId: log.id,
+      action: idx >= 0 ? SyncAction.update : SyncAction.create,
+      payload: log.toJson(),
     );
   }
 
@@ -138,6 +184,12 @@ class LocalStorageService {
       _Keys.babies,
       jsonEncode(babies.map((b) => b.toJson()).toList()),
     );
+    await _syncEngine.enqueueChange(
+      collection: SyncCollection.babies,
+      recordId: baby.id,
+      action: idx >= 0 ? SyncAction.update : SyncAction.create,
+      payload: baby.toJson(),
+    );
   }
 
   Future<void> deleteBaby(String id) async {
@@ -145,6 +197,12 @@ class LocalStorageService {
     await _prefs.setString(
       _Keys.babies,
       jsonEncode(babies.map((b) => b.toJson()).toList()),
+    );
+    await _syncEngine.enqueueChange(
+      collection: SyncCollection.babies,
+      recordId: id,
+      action: SyncAction.delete,
+      payload: {'id': id},
     );
     // Also delete logs for this baby
     final logs = getBabyLogs()..removeWhere((l) => l.babyId == id);
@@ -178,6 +236,12 @@ class LocalStorageService {
     await _prefs.setString(
       _Keys.babyLogs,
       jsonEncode(logs.map((l) => l.toJson()).toList()),
+    );
+    await _syncEngine.enqueueChange(
+      collection: SyncCollection.babyLogs,
+      recordId: log.id,
+      action: idx >= 0 ? SyncAction.update : SyncAction.create,
+      payload: log.toJson(),
     );
   }
 

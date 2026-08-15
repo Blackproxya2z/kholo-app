@@ -14,6 +14,7 @@ import '../../core/utils/cycle_engine.dart';
 import '../../shared/widgets/phase_card.dart';
 import '../../shared/widgets/log_bottom_sheet.dart';
 import '../../shared/widgets/update_banner.dart';
+import '../../shared/widgets/update_dialog.dart';
 import 'widgets/animated_cycle_ring.dart';
 import 'widgets/liquid_flow_animation.dart';
 import 'widgets/daily_hormonal_insight_card.dart';
@@ -33,6 +34,7 @@ class TodayScreen extends ConsumerStatefulWidget {
 
 class _TodayScreenState extends ConsumerState<TodayScreen> {
   AppUpdate? _pendingUpdate;
+  int _currentVersionCode = 1;
 
   @override
   void initState() {
@@ -41,9 +43,22 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
   }
 
   Future<void> _checkForUpdate() async {
+    final currentCode = await UpdateService.currentVersionCode();
     final update = await UpdateService.checkForUpdate();
     if (mounted && update != null) {
-      setState(() => _pendingUpdate = update);
+      setState(() {
+        _currentVersionCode = currentCode;
+        _pendingUpdate = update;
+      });
+
+      // If mandatory, automatically trigger dialog
+      if (update.isMandatory(currentCode)) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            UpdateDialog.show(context, update, currentVersionCode: currentCode);
+          }
+        });
+      }
     }
   }
 
@@ -112,6 +127,7 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
             if (_pendingUpdate != null)
               UpdateBanner(
                 update: _pendingUpdate!,
+                currentVersionCode: _currentVersionCode,
                 onDismiss: () =>
                     setState(() => _pendingUpdate = null),
               ),

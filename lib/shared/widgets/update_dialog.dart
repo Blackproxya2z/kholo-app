@@ -3,18 +3,32 @@ import '../../app/theme/colors.dart';
 import '../../core/models/app_update.dart';
 import '../../core/services/update_service.dart';
 
-/// Full-screen update dialog showing release notes and a download progress bar.
-/// Opens when user taps the UpdateBanner or the update menu item.
+/// Full-screen update dialog showing release notes, SHA-256 verification indicator,
+/// and in-place upgrade progress.
 class UpdateDialog extends StatefulWidget {
-  const UpdateDialog({super.key, required this.update});
+  const UpdateDialog({
+    super.key,
+    required this.update,
+    this.currentVersionCode = 1,
+  });
+
   final AppUpdate update;
+  final int currentVersionCode;
 
   /// Convenience static method to show the dialog.
-  static Future<void> show(BuildContext context, AppUpdate update) {
+  static Future<void> show(
+    BuildContext context,
+    AppUpdate update, {
+    int currentVersionCode = 1,
+  }) {
+    final isMandatory = update.isMandatory(currentVersionCode);
     return showDialog(
       context: context,
-      barrierDismissible: !update.forceUpdate,
-      builder: (_) => UpdateDialog(update: update),
+      barrierDismissible: !isMandatory,
+      builder: (_) => UpdateDialog(
+        update: update,
+        currentVersionCode: currentVersionCode,
+      ),
     );
   }
 
@@ -25,186 +39,293 @@ class UpdateDialog extends StatefulWidget {
 class _UpdateDialogState extends State<UpdateDialog> {
   _Phase _phase = _Phase.idle;
   double _progress = 0;
+  String _statusText = 'Downloading...';
   String? _errorMsg;
+
+  bool get _isMandatory => widget.update.isMandatory(widget.currentVersionCode);
 
   @override
   Widget build(BuildContext context) {
     final tt = Theme.of(context).textTheme;
 
-    return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-      backgroundColor: KholoColors.canvas,
-      child: Padding(
-        padding: const EdgeInsets.all(28),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header
-            Row(
-              children: [
-                Container(
-                  width: 48,
-                  height: 48,
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [KholoColors.wine, KholoColors.magenta],
+    return PopScope(
+      canPop: !_isMandatory && _phase != _Phase.downloading && _phase != _Phase.verifying,
+      child: Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+        backgroundColor: KholoColors.canvas,
+        child: Padding(
+          padding: const EdgeInsets.all(28),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header
+              Row(
+                children: [
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [KholoColors.wine, KholoColors.magenta],
+                      ),
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: KholoColors.wine.withValues(alpha: 0.25),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
                     ),
-                    borderRadius: BorderRadius.circular(16),
+                    child: const Icon(Icons.system_update_rounded,
+                        color: Colors.white, size: 26),
                   ),
-                  child: const Icon(Icons.system_update_rounded,
-                      color: Colors.white, size: 26),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('New version ready',
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          _isMandatory ? 'Required Update' : 'New Version Available',
                           style: tt.titleLarge?.copyWith(
-                              fontWeight: FontWeight.w700, color: KholoColors.ink)),
-                      Text(
-                        'v${widget.update.latestVersion}',
-                        style: tt.bodySmall?.copyWith(color: KholoColors.inkMuted),
+                            fontWeight: FontWeight.w700,
+                            color: KholoColors.ink,
+                          ),
+                        ),
+                        Text(
+                          'v${widget.update.latestVersion} (Build ${widget.update.versionCode})',
+                          style: tt.bodySmall?.copyWith(color: KholoColors.inkMuted),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 20),
+
+              // Security & Integrity Badge
+              if (widget.update.apkSha256 != null)
+                Container(
+                  margin: const EdgeInsets.only(bottom: 16),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE8F5E9),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: const Color(0xFFA5D6A7)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.verified_user_rounded,
+                          color: Color(0xFF2E7D32), size: 16),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Signed build • SHA-256 Verified',
+                          style: tt.labelSmall?.copyWith(
+                            color: const Color(0xFF1B5E20),
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                       ),
                     ],
                   ),
                 ),
+
+              // Release notes
+              if (widget.update.releaseNotes.isNotEmpty) ...[
+                Text("What's new", style: tt.titleSmall?.copyWith(color: KholoColors.inkMuted)),
+                const SizedBox(height: 8),
+                Container(
+                  constraints: const BoxConstraints(maxHeight: 140),
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: KholoColors.lavenderLight,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: SingleChildScrollView(
+                    child: Text(
+                      widget.update.releaseNotes,
+                      style: tt.bodySmall?.copyWith(height: 1.6, color: KholoColors.ink),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
               ],
-            ),
 
-            const SizedBox(height: 20),
-
-            // Release notes
-            if (widget.update.releaseNotes.isNotEmpty) ...[
-              Text("What's new", style: tt.titleSmall?.copyWith(color: KholoColors.inkMuted)),
-              const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: KholoColors.lavenderLight,
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Text(
-                  widget.update.releaseNotes,
-                  style: tt.bodySmall?.copyWith(height: 1.6, color: KholoColors.ink),
-                ),
-              ),
-              const SizedBox(height: 20),
-            ],
-
-            // Progress bar (visible during download)
-            if (_phase == _Phase.downloading) ...[
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text('Downloading...', style: tt.bodySmall?.copyWith(color: KholoColors.inkMuted)),
-                  Text('${(_progress * 100).toStringAsFixed(0)}%',
-                      style: tt.bodySmall?.copyWith(
-                          color: KholoColors.plum, fontWeight: FontWeight.w700)),
-                ],
-              ),
-              const SizedBox(height: 8),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: LinearProgressIndicator(
-                  value: _progress,
-                  minHeight: 10,
-                  backgroundColor: KholoColors.lavenderLight,
-                  valueColor: const AlwaysStoppedAnimation<Color>(KholoColors.wine),
-                ),
-              ),
-              const SizedBox(height: 20),
-            ],
-
-            // Error message
-            if (_errorMsg != null) ...[
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFDE8E8),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(
+              // Progress bar & verification status
+              if (_phase == _Phase.downloading ||
+                  _phase == _Phase.verifying ||
+                  _phase == _Phase.installing) ...[
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Icon(Icons.error_outline, color: KholoColors.error, size: 18),
-                    const SizedBox(width: 8),
-                    Expanded(
-                        child: Text(_errorMsg!,
-                            style: tt.bodySmall?.copyWith(color: KholoColors.error))),
+                    Text(_statusText,
+                        style: tt.bodySmall?.copyWith(
+                          color: KholoColors.ink,
+                          fontWeight: FontWeight.w600,
+                        )),
+                    if (_phase == _Phase.downloading)
+                      Text('${(_progress * 100).toStringAsFixed(0)}%',
+                          style: tt.bodySmall?.copyWith(
+                              color: KholoColors.plum, fontWeight: FontWeight.w700)),
                   ],
                 ),
-              ),
-              const SizedBox(height: 16),
-            ],
-
-            // Action buttons
-            Row(
-              children: [
-                if (!widget.update.forceUpdate)
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed:
-                          _phase == _Phase.downloading ? null : () => Navigator.pop(context),
-                      child: const Text('Later'),
-                    ),
-                  ),
-                if (!widget.update.forceUpdate) const SizedBox(width: 12),
-                Expanded(
-                  flex: 2,
-                  child: ElevatedButton(
-                    onPressed: _phase == _Phase.downloading ? null : _startDownload,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: KholoColors.wine,
-                      foregroundColor: Colors.white,
-                    ),
-                    child: _phase == _Phase.downloading
-                        ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                                strokeWidth: 2, color: Colors.white),
-                          )
-                        : const Text('Update Now'),
+                const SizedBox(height: 8),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: LinearProgressIndicator(
+                    value: _phase == _Phase.downloading ? _progress : null,
+                    minHeight: 10,
+                    backgroundColor: KholoColors.lavenderLight,
+                    valueColor: const AlwaysStoppedAnimation<Color>(KholoColors.wine),
                   ),
                 ),
+                const SizedBox(height: 20),
               ],
-            ),
-          ],
+
+              // Error message
+              if (_errorMsg != null) ...[
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFDE8E8),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFFF87171)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.security_rounded, color: KholoColors.error, size: 18),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          _errorMsg!,
+                          style: tt.bodySmall?.copyWith(color: KholoColors.error),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+              ],
+
+              // Action buttons
+              Row(
+                children: [
+                  if (!_isMandatory)
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: (_phase == _Phase.downloading ||
+                                _phase == _Phase.verifying ||
+                                _phase == _Phase.installing)
+                            ? null
+                            : () => Navigator.pop(context),
+                        child: const Text('Later'),
+                      ),
+                    ),
+                  if (!_isMandatory) const SizedBox(width: 12),
+                  Expanded(
+                    flex: 2,
+                    child: ElevatedButton(
+                      onPressed: (_phase == _Phase.downloading ||
+                              _phase == _Phase.verifying ||
+                              _phase == _Phase.installing)
+                          ? null
+                          : _startDownloadAndInstall,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: KholoColors.wine,
+                        foregroundColor: Colors.white,
+                      ),
+                      child: (_phase == _Phase.downloading ||
+                              _phase == _Phase.verifying ||
+                              _phase == _Phase.installing)
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2, color: Colors.white),
+                            )
+                          : Text(_isMandatory ? 'Update Now (Required)' : 'Update Now'),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Future<void> _startDownload() async {
+  Future<void> _startDownloadAndInstall() async {
     setState(() {
       _phase = _Phase.downloading;
       _progress = 0;
+      _statusText = 'Downloading update...';
       _errorMsg = null;
     });
 
-    final path = await UpdateService.downloadApk(
-      widget.update.apkUrl,
-      onProgress: (p) {
-        if (mounted) setState(() => _progress = p);
-      },
-    );
+    try {
+      final path = await UpdateService.downloadApk(
+        widget.update.apkUrl,
+        expectedSha256: widget.update.apkSha256,
+        onProgress: (p) {
+          if (mounted) {
+            setState(() {
+              _progress = p;
+              _statusText = 'Downloading (${(p * 100).toStringAsFixed(0)}%)...';
+            });
+          }
+        },
+        onStatusChange: (status) {
+          if (mounted) {
+            setState(() {
+              _statusText = status;
+              if (status.contains('Verifying')) {
+                _phase = _Phase.verifying;
+              }
+            });
+          }
+        },
+      );
 
-    if (!mounted) return;
+      if (!mounted) return;
 
-    if (path == null) {
+      if (path == null) {
+        setState(() {
+          _phase = _Phase.error;
+          _errorMsg = 'Download failed or permission denied. Please try again.';
+        });
+        return;
+      }
+
       setState(() {
-        _phase = _Phase.error;
-        _errorMsg = 'Download failed. Check your connection and try again.';
+        _phase = _Phase.installing;
+        _statusText = 'Launching Package Installer...';
       });
-      return;
+
+      await UpdateService.installApk(path);
+
+      if (mounted && !_isMandatory) {
+        Navigator.pop(context);
+      }
+    } on SecurityIntegrityException catch (e) {
+      if (mounted) {
+        setState(() {
+          _phase = _Phase.error;
+          _errorMsg = e.message;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _phase = _Phase.error;
+          _errorMsg = 'Update failed: $e';
+        });
+      }
     }
-
-    setState(() => _phase = _Phase.installing);
-    await UpdateService.installApk(path);
-
-    if (mounted) Navigator.pop(context);
   }
 }
 
-enum _Phase { idle, downloading, installing, error }
+enum _Phase { idle, downloading, verifying, installing, error }
