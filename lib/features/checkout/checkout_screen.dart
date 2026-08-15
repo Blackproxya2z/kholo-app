@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../app/theme/colors.dart';
 import '../../core/models/product.dart';
 import '../../core/providers/providers.dart';
+import '../../shared/widgets/kholo_animated_loader.dart';
 
 /// Order review and checkout screen.
 /// Payment UI is Stripe-ready but inactive until server keys are configured.
@@ -288,7 +289,14 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       );
       return;
     }
-    setState(() => _orderPlaced = true);
+
+    KholoAnimatedLoader.show(context, message: 'Confirming your order...');
+    Future.delayed(const Duration(milliseconds: 900), () {
+      if (mounted) {
+        KholoAnimatedLoader.hide(context);
+        setState(() => _orderPlaced = true);
+      }
+    });
   }
 }
 

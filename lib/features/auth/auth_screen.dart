@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../app/theme/colors.dart';
 import '../../core/providers/providers.dart';
+import '../../shared/widgets/kholo_animated_loader.dart';
 
 /// Sign in / sign up screen.
 /// For v1 (local-only), creates a stable local user ID.
@@ -39,12 +40,20 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
       _loading = true;
       _error = null;
     });
+
+    KholoAnimatedLoader.show(
+      context,
+      message: _isSignUp ? 'Creating your private space...' : 'Signing in to KHOLO...',
+    );
+
     // Simulate async auth — in production, call a real auth provider.
-    await Future.delayed(const Duration(milliseconds: 800));
+    await Future.delayed(const Duration(milliseconds: 900));
     // Use email as a stable local user ID for v1.
     await ref.read(authProvider.notifier).signIn(email);
     if (!mounted) return;
+    KholoAnimatedLoader.hide(context);
     setState(() => _loading = false);
+
     // Route to onboarding if profile incomplete, else to app.
     final profile = ref.read(healthProfileProvider);
     if (!profile.onboardingComplete) {

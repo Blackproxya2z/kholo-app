@@ -6,6 +6,7 @@ import '../../app/theme/colors.dart';
 import '../../core/models/health_profile.dart';
 import '../../core/providers/providers.dart';
 import '../../core/services/notification_service.dart';
+import '../../shared/widgets/kholo_animated_loader.dart';
 
 /// Five-step onboarding flow.
 /// Step 0: Welcome / app-intro (NEW — explains what KHOLO does)
@@ -200,34 +201,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
 
 // ── Step 0 — Welcome / App Intro ──────────────────────────────────────────────
 
-class _StepWelcome extends StatefulWidget {
+class _StepWelcome extends StatelessWidget {
   const _StepWelcome();
-
-  @override
-  State<_StepWelcome> createState() => _StepWelcomeState();
-}
-
-class _StepWelcomeState extends State<_StepWelcome>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _ctrl;
-  late final Animation<double> _logoScale;
-  late final Animation<double> _ringFade;
-
-  @override
-  void initState() {
-    super.initState();
-    _ctrl = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 900))
-      ..forward();
-    _logoScale = CurvedAnimation(parent: _ctrl, curve: Curves.elasticOut);
-    _ringFade = CurvedAnimation(parent: _ctrl, curve: Curves.easeIn);
-  }
-
-  @override
-  void dispose() {
-    _ctrl.dispose();
-    super.dispose();
-  }
 
   static const _features = [
     (Icons.water_drop_rounded, '🩸 Cycle tracking',
@@ -248,57 +223,16 @@ class _StepWelcomeState extends State<_StepWelcome>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        const SizedBox(height: 32),
+        const SizedBox(height: 24),
 
-        // Animated logo
-        ScaleTransition(
-          scale: _logoScale,
-          child: FadeTransition(
-            opacity: _ringFade,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                // Glow ring
-                Container(
-                  width: 100,
-                  height: 100,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: RadialGradient(colors: [
-                      KholoColors.magenta.withValues(alpha: 0.25),
-                      Colors.transparent,
-                    ]),
-                  ),
-                ),
-                // Logo circle
-                Container(
-                  width: 76,
-                  height: 76,
-                  decoration: const BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: LinearGradient(
-                      colors: [KholoColors.wine, KholoColors.magenta],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                  ),
-                  child: Center(
-                    child: Text(
-                      'K',
-                      style: GoogleFonts.playfairDisplay(
-                        fontSize: 38,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
+        // Glowing Blooming Animated Logo with Particles
+        const KholoGlowingLogo(
+          size: 88,
+          showSparkles: true,
+          showHalo: true,
         ),
 
-        const SizedBox(height: 20),
+        const SizedBox(height: 16),
 
         // App name
         Text(

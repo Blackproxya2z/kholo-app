@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import '../../app/theme/colors.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../app/theme/colors.dart';
+import '../../shared/widgets/kholo_animated_loader.dart';
 
 /// Public landing page — KHOLO's first impression.
 /// Asymmetric editorial layout with floating phase card, dual CTA,
@@ -108,7 +109,17 @@ class _NarrowLayout extends StatelessWidget {
           const SizedBox(height: 24),
           // Wordmark
           _KholoWordmark(),
-          const SizedBox(height: 48),
+          const SizedBox(height: 28),
+
+          // Glowing Blooming Hero Logo
+          const Center(
+            child: KholoGlowingLogo(
+              size: 90,
+              showSparkles: true,
+              showHalo: true,
+            ),
+          ),
+          const SizedBox(height: 32),
 
           // Hero headline
           Text(
