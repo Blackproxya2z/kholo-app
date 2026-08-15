@@ -46,3 +46,8 @@ app.*.map.json
 
 # Widget Preview related
 .widget_preview/
+
+# Release APKs (should be uploaded as GitHub Releases instead)
+*.apk
+*.aab
+/build/
