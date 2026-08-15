@@ -141,6 +141,10 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
 
             // ── Greeting Hero ─────────────────────────────────────────────
             _GreetingHero(greeting: greeting, profile: profile),
+            const SizedBox(height: 16),
+
+            // ── AI Skin Doctor Scanner Entry ──────────────────────────────
+            _AiSkinScannerBanner(onTap: () => context.go('/skin-scan')),
             const SizedBox(height: 20),
 
             // ── Phase / Cycle Section ─────────────────────────────────────
@@ -940,3 +944,107 @@ class _RecentProducts extends StatelessWidget {
     );
   }
 }
+
+class _AiSkinScannerBanner extends StatelessWidget {
+  const _AiSkinScannerBanner({required this.onTap});
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () {
+        HapticFeedback.lightImpact();
+        onTap();
+      },
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xFF2A1124), Color(0xFF1B0F2A)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: const Color(0xFFF62477).withValues(alpha: 0.35),
+            width: 1.5,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFFF62477).withValues(alpha: 0.18),
+              blurRadius: 16,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 46,
+              height: 46,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: const LinearGradient(
+                  colors: [Color(0xFFF62477), Color(0xFF92003A)],
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFFF62477).withValues(alpha: 0.4),
+                    blurRadius: 8,
+                  ),
+                ],
+              ),
+              child: const Icon(Icons.document_scanner_rounded, color: Colors.white, size: 22),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Text(
+                        'AI স্কিন ডক্টর স্ক্যানার',
+                        style: GoogleFonts.hindSiliguri(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF8D880),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: const Text(
+                          'NEW',
+                          style: TextStyle(
+                            fontSize: 9,
+                            fontWeight: FontWeight.w800,
+                            color: Color(0xFF3E1B00),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'ক্যামেরায় ফেস স্ক্যান করে ইনস্ট্যান্ট স্কিনকেয়ার পরামর্শ নিন',
+                    style: GoogleFonts.hindSiliguri(
+                      fontSize: 12,
+                      color: const Color(0xFFE2DCE8),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.arrow_forward_ios_rounded, color: Color(0xFFF8D880), size: 16),
+          ],
+        ),
+      ),
+    );
+  }
+}
+

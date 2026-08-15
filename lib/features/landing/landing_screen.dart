@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../app/theme/colors.dart';
+import '../../core/models/app_update.dart';
+import '../../core/services/update_service.dart';
+import '../../core/services/notification_service.dart';
+import '../../shared/widgets/update_banner.dart';
 import '../../shared/widgets/kholo_animated_loader.dart';
 
 /// Public landing page — KHOLO's first impression.
@@ -18,6 +22,8 @@ class _LandingScreenState extends State<LandingScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _orbCtrl;
   late Animation<Alignment> _orbAlign;
+  AppUpdate? _pendingUpdate;
+  int _currentVersionCode = 1;
 
   @override
   void initState() {
@@ -31,6 +37,23 @@ class _LandingScreenState extends State<LandingScreen>
       begin: const Alignment(-0.6, -0.8),
       end: const Alignment(0.6, 0.2),
     ).animate(CurvedAnimation(parent: _orbCtrl, curve: Curves.easeInOut));
+
+    _checkForUpdate();
+  }
+
+  Future<void> _checkForUpdate() async {
+    final code = await UpdateService.currentVersionCode();
+    final update = await UpdateService.checkForUpdate();
+    if (mounted && update != null) {
+      setState(() {
+        _currentVersionCode = code;
+        _pendingUpdate = update;
+      });
+      await NotificationService.showUpdateNotification(
+        version: update.latestVersion,
+        releaseNotes: update.releaseNotes,
+      );
+    }
   }
 
   @override
@@ -76,7 +99,13 @@ class _LandingScreenState extends State<LandingScreen>
           SafeArea(
             child: isWide
                 ? _WideLayout(onGetStarted: _goAuth, onShop: _goShop)
-                : _NarrowLayout(onGetStarted: _goAuth, onShop: _goShop),
+                : _NarrowLayout(
+                    onGetStarted: _goAuth,
+                    onShop: _goShop,
+                    pendingUpdate: _pendingUpdate,
+                    currentVersionCode: _currentVersionCode,
+                    onDismissUpdate: () => setState(() => _pendingUpdate = null),
+                  ),
           ),
         ],
       ),
@@ -93,9 +122,18 @@ class _LandingScreenState extends State<LandingScreen>
 // ── Narrow / mobile layout ────────────────────────────────────────────────────
 
 class _NarrowLayout extends StatelessWidget {
-  const _NarrowLayout({required this.onGetStarted, required this.onShop});
+  const _NarrowLayout({
+    required this.onGetStarted,
+    required this.onShop,
+    this.pendingUpdate,
+    this.currentVersionCode = 1,
+    this.onDismissUpdate,
+  });
   final VoidCallback onGetStarted;
   final VoidCallback onShop;
+  final AppUpdate? pendingUpdate;
+  final int currentVersionCode;
+  final VoidCallback? onDismissUpdate;
 
   @override
   Widget build(BuildContext context) {
@@ -106,6 +144,14 @@ class _NarrowLayout extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          if (pendingUpdate != null) ...[
+            const SizedBox(height: 12),
+            UpdateBanner(
+              update: pendingUpdate!,
+              currentVersionCode: currentVersionCode,
+              onDismiss: onDismissUpdate ?? () {},
+            ),
+          ],
           const SizedBox(height: 24),
           // Wordmark
           _KholoWordmark(),

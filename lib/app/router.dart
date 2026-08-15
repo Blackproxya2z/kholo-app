@@ -15,6 +15,7 @@ import '../features/product/product_detail_screen.dart';
 import '../features/cart/cart_screen.dart';
 import '../features/checkout/checkout_screen.dart';
 import '../features/profile/profile_screen.dart';
+import '../features/skin_scan/skin_scan_screen.dart';
 import '../shared/widgets/kholo_bottom_nav.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
@@ -105,6 +106,11 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: '/profile',
             pageBuilder: (context, state) =>
                 _slide(state, const ProfileScreen()),
+          ),
+          GoRoute(
+            path: '/skin-scan',
+            pageBuilder: (context, state) =>
+                _slide(state, const SkinScanScreen()),
           ),
         ],
       ),

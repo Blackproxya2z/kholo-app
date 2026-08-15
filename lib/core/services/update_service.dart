@@ -41,21 +41,31 @@ class UpdateService {
       final info = await PackageInfo.fromPlatform();
       final currentCode = int.tryParse(info.buildNumber) ?? 1;
 
+      // Append timestamp cache-buster to bypass GitHub CDN edge caching
+      final cacheBuster = DateTime.now().millisecondsSinceEpoch;
+      final uri = Uri.parse('$versionManifestUrl?nocache=$cacheBuster');
+
       final response = await http
           .get(
-            Uri.parse(versionManifestUrl),
+            uri,
             headers: {
               'Accept': 'application/json',
-              'Cache-Control': 'no-cache',
+              'Cache-Control': 'no-cache, no-store, must-revalidate',
+              'Pragma': 'no-cache',
             },
           )
           .timeout(const Duration(seconds: 8));
 
-      if (response.statusCode != 200) return null;
+      if (response.statusCode != 200) {
+        debugPrint('[UpdateService] Failed to fetch manifest. Status: ${response.statusCode}');
+        return null;
+      }
 
       final update = AppUpdate.fromJson(
         jsonDecode(response.body) as Map<String, dynamic>,
       );
+
+      debugPrint('[UpdateService] Remote version: ${update.versionCode}, Current: $currentCode');
 
       // Only show update if remote versionCode is strictly greater
       if (update.versionCode > currentCode && update.apkUrl.isNotEmpty) {
@@ -104,15 +114,6 @@ class UpdateService {
     ValueChanged<String>? onStatusChange,
   }) async {
     try {
-      // Request install permission on Android 8.0+
-      if (Platform.isAndroid) {
-        final status = await Permission.requestInstallPackages.request();
-        if (!status.isGranted) {
-          debugPrint('[UpdateService] Install permission not granted.');
-          return null;
-        }
-      }
-
       final tempDir = await getTemporaryDirectory();
       final savePath = '${tempDir.path}/kholo_update_staged.apk';
       final file = File(savePath);
@@ -122,20 +123,37 @@ class UpdateService {
         await file.delete();
       }
 
+      onStatusChange?.call('Connecting to update server...');
+
+      final dio = Dio(
+        BaseOptions(
+          followRedirects: true,
+          maxRedirects: 10,
+          connectTimeout: const Duration(seconds: 30),
+          receiveTimeout: const Duration(minutes: 10),
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Android; Mobile; rv:109.0) Gecko/109.0 Firefox/119.0',
+            'Accept': '*/*',
+          },
+        ),
+      );
+
       onStatusChange?.call('Downloading update...');
 
-      final dio = Dio();
       await dio.download(
         apkUrl,
         savePath,
         onReceiveProgress: (received, total) {
-          if (total > 0) onProgress(received / total);
+          if (total > 0) {
+            onProgress(received / total);
+          }
         },
-        options: Options(
-          receiveTimeout: const Duration(minutes: 10),
-          sendTimeout: const Duration(seconds: 30),
-        ),
       );
+
+      // Verify file exists and has content
+      if (!await file.exists() || (await file.length()) == 0) {
+        throw Exception('Downloaded file is empty or missing.');
+      }
 
       // Verify SHA-256 Checksum if provided
       if (expectedSha256 != null && expectedSha256.trim().isNotEmpty) {
@@ -164,7 +182,15 @@ class UpdateService {
   /// Existing user data, SQLite records, and SharedPreferences are preserved.
   static Future<OpenResult> installApk(String filePath) async {
     debugPrint('[UpdateService] Triggering in-place installation: $filePath');
-    return await OpenFilex.open(filePath, type: 'application/vnd.android.package-archive');
+    if (Platform.isAndroid) {
+      try {
+        await Permission.requestInstallPackages.request();
+      } catch (_) {}
+    }
+    return await OpenFilex.open(
+      filePath,
+      type: 'application/vnd.android.package-archive',
+    );
   }
 
   /// Returns current app version display string, e.g. "1.0.0 (build 1)"

@@ -11,6 +11,9 @@ import '../../core/services/biometric_service.dart';
 import '../../core/services/export_service.dart';
 import '../../core/providers/sync_provider.dart';
 import '../../core/services/sync_engine_service.dart';
+import '../../core/services/update_service.dart';
+import '../../shared/widgets/update_dialog.dart';
+import '../../shared/widgets/kholo_animated_loader.dart';
 import 'widgets/health_baseline_sheet.dart';
 
 /// Profile and privacy settings screen.
@@ -200,6 +203,32 @@ class ProfileScreen extends ConsumerWidget {
                   }
                   HapticFeedback.selectionClick();
                   await ref.read(appSettingsProvider.notifier).setBiometricLock(v);
+                },
+              ),
+              const Divider(height: 1, indent: 44),
+              _ActionRow(
+                icon: Icons.system_update_rounded,
+                label: 'Check for updates',
+                color: KholoColors.wine,
+                onTap: () async {
+                  HapticFeedback.lightImpact();
+                  KholoAnimatedLoader.show(context, message: 'Checking for updates...');
+                  final code = await UpdateService.currentVersionCode();
+                  final update = await UpdateService.checkForUpdate();
+                  if (context.mounted) {
+                    KholoAnimatedLoader.hide(context);
+                    if (update != null) {
+                      UpdateDialog.show(context, update, currentVersionCode: code);
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('🌸 You\'re on the latest version of KHOLO!'),
+                          backgroundColor: KholoColors.wine,
+                          duration: Duration(seconds: 3),
+                        ),
+                      );
+                    }
+                  }
                 },
               ),
             ],
