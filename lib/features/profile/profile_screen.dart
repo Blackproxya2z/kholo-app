@@ -1,0 +1,777 @@
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
+import '../../app/theme/colors.dart';
+import '../../core/models/health_profile.dart';
+import '../../core/providers/providers.dart';
+import '../../core/providers/app_settings_provider.dart';
+import '../../core/services/biometric_service.dart';
+import '../../core/services/export_service.dart';
+import 'widgets/health_baseline_sheet.dart';
+
+/// Profile and privacy settings screen.
+class ProfileScreen extends ConsumerWidget {
+  const ProfileScreen({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final user = ref.watch(authProvider);
+    final profile = ref.watch(healthProfileProvider);
+    final tt = Theme.of(context).textTheme;
+
+    return Scaffold(
+      backgroundColor: KholoColors.canvas,
+      appBar: AppBar(
+        title: const Text('Profile & privacy'),
+        actions: [
+          TextButton(
+            onPressed: () => ref.read(authProvider.notifier).signOut(),
+            child: const Text('Sign out', style: TextStyle(color: KholoColors.error)),
+          ),
+        ],
+      ),
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(20, 8, 20, 40),
+        children: [
+          // Avatar & name
+          _ProfileHeader(email: user ?? ''),
+          const SizedBox(height: 24),
+
+          // Health baseline
+          const _SectionTitle('Health baseline'),
+          const SizedBox(height: 12),
+          _ProfileCard(
+            children: [
+              _EditableRow(
+                label: 'Cycle length',
+                value: '${profile.safeCycleLength} days',
+                icon: Icons.cached_rounded,
+                onEdit: () => _editCycleLength(context, ref, profile),
+              ),
+              _EditableRow(
+                label: 'Period length',
+                value: '${profile.safePeriodLength} days',
+                icon: Icons.water_drop_outlined,
+                onEdit: () => _editPeriodLength(context, ref, profile),
+              ),
+              _EditableRow(
+                label: 'Last period start',
+                value: profile.lastPeriodDate != null
+                    ? _fmtDate(profile.lastPeriodDate!)
+                    : 'Not set',
+                icon: Icons.calendar_today_outlined,
+                onEdit: () => _editLastPeriod(context, ref, profile),
+              ),
+              _EditableRow(
+                label: 'Age range',
+                value: profile.ageRange ?? 'Not set',
+                icon: Icons.person_outline_rounded,
+                onEdit: () => _editAgeRange(context, ref, profile),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 20),
+
+          // Wellness & Cycle Metrics
+          const _SectionTitle('Cycle wellness & metrics'),
+          const SizedBox(height: 12),
+          _ProfileCard(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                decoration: const BoxDecoration(
+                  border: Border(bottom: BorderSide(color: KholoColors.divider)),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: KholoColors.blush.withValues(alpha: 0.35),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.medical_services_outlined,
+                          color: KholoColors.wine, size: 18),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('PCOS / PCOD support mode', style: tt.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
+                          Text('Adapts algorithms for irregular cycle lengths',
+                              style: tt.bodySmall?.copyWith(color: KholoColors.inkMuted)),
+                        ],
+                      ),
+                    ),
+                    Switch.adaptive(
+                      value: profile.hasPcosPcod,
+                      activeTrackColor: KholoColors.wine,
+                      onChanged: (val) {
+                        HapticFeedback.selectionClick();
+                        ref.read(healthProfileProvider.notifier).update(
+                              (p) => p.copyWith(hasPcosPcod: val),
+                            );
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              _EditableRow(
+                label: 'Daily water goal',
+                value: '${profile.dailyWaterGoalMl} ml',
+                icon: Icons.local_drink_outlined,
+                onEdit: () => _editWaterGoal(context, ref, profile),
+              ),
+              _EditableRow(
+                label: 'Target sleep',
+                value: '${profile.targetSleepHours.toStringAsFixed(1)} hrs',
+                icon: Icons.bedtime_outlined,
+                onEdit: () => _editSleepGoal(context, ref, profile),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 20),
+
+          const SizedBox(height: 20),
+
+          // Life stage
+          const _SectionTitle('Life stage'),
+          const SizedBox(height: 12),
+          _ProfileCard(
+            children: LifeStage.values.map((s) {
+              final isSelected = profile.lifeStage == s;
+              return GestureDetector(
+                onTap: () => ref.read(healthProfileProvider.notifier).update(
+                      (p) => p.copyWith(lifeStage: s),
+                    ),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 10),
+                  decoration: const BoxDecoration(
+                    border: Border(
+                      bottom: BorderSide(color: KholoColors.divider),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(child: Text(s.displayName, style: tt.bodyMedium)),
+                      if (isSelected)
+                        const Icon(Icons.check_rounded,
+                            color: KholoColors.plum, size: 18),
+                    ],
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+
+          const SizedBox(height: 20),
+
+          // ── App Settings ─────────────────────────────────────────────
+          const _SectionTitle('App settings'),
+          const SizedBox(height: 12),
+          _ProfileCard(
+            children: [
+              _SettingsToggleRow(
+                icon: Icons.dark_mode_outlined,
+                label: 'Dark mode',
+                subtitle: 'Switch to dark colour scheme',
+                value: ref.watch(appSettingsProvider).darkMode,
+                onChanged: (v) {
+                  HapticFeedback.selectionClick();
+                  ref.read(appSettingsProvider.notifier).setDarkMode(v);
+                },
+              ),
+              _BiometricToggleRow(
+                value: ref.watch(appSettingsProvider).biometricLock,
+                onChanged: (v) async {
+                  if (v) {
+                    // Verify biometric before enabling
+                    final ok = await BiometricService.authenticate(
+                        reason: 'Confirm your identity to enable app lock');
+                    if (!ok) return;
+                  }
+                  HapticFeedback.selectionClick();
+                  await ref.read(appSettingsProvider.notifier).setBiometricLock(v);
+                },
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 20),
+
+          // Data and privacy
+          const _SectionTitle('Your data & privacy'),
+          const SizedBox(height: 12),
+          _ProfileCard(
+            children: [
+              const _StaticRow(
+                icon: Icons.lock_outline_rounded,
+                label: 'Your data stays on your device',
+                subtitle: 'Health info is not shared with payment systems or advertisers.',
+              ),
+              _ActionRow(
+                icon: Icons.download_outlined,
+                label: 'Export cycle data as CSV',
+                color: KholoColors.plum,
+                onTap: () {
+                  final logs = ref.read(cycleLogsProvider);
+                  ExportService.exportCycleLogs(context, logs);
+                },
+              ),
+              _ActionRow(
+                icon: Icons.delete_outline_rounded,
+                label: 'Delete my account and data',
+                color: KholoColors.error,
+                onTap: () => _showDeleteDialog(context, ref),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 20),
+
+          // Pregnancy & baby modules
+          const _SectionTitle('Modules'),
+          const SizedBox(height: 12),
+          _ProfileCard(
+            children: [
+              _ActionRow(
+                icon: Icons.child_friendly_outlined,
+                label: 'Pregnancy settings',
+                color: KholoColors.rose,
+                onTap: () => context.go('/pregnancy'),
+              ),
+              _ActionRow(
+                icon: Icons.child_care_outlined,
+                label: 'Baby profiles',
+                color: KholoColors.sage,
+                onTap: () => context.go('/baby'),
+              ),
+              _ActionRow(
+                icon: Icons.insights_outlined,
+                label: 'View insights',
+                color: KholoColors.lavender,
+                onTap: () => context.go('/insights'),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 20),
+
+          // Disclaimer
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: KholoColors.lavenderLight,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: KholoColors.lavender.withValues(alpha: 0.3)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.shield_outlined,
+                        color: KholoColors.plum, size: 18),
+                    const SizedBox(width: 8),
+                    Text('Health disclaimer',
+                        style: tt.titleSmall?.copyWith(color: KholoColors.plum)),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'KHOLO provides self-tracking tools and educational content. It does not diagnose conditions, replace contraception, or substitute for clinical care. All cycle and fertility estimates are based on your input data.\n\nFor any health concerns, please contact a qualified healthcare provider.',
+                  style: tt.bodySmall?.copyWith(color: KholoColors.inkMuted, height: 1.6),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 16),
+          Padding(
+            padding: const EdgeInsets.only(bottom: 12.0, top: 8.0),
+            child: Center(
+              child: Text(
+                'Developed by Azmain',
+                style: TextStyle(
+                  fontSize: 11,
+                  letterSpacing: 0.8,
+                  fontWeight: FontWeight.w500,
+                  color: Theme.of(context).textTheme.bodySmall?.color?.withValues(alpha: 0.5) ?? Colors.grey,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── Edit dialogs ──────────────────────────────────────────────────────────
+
+  void _editCycleLength(BuildContext ctx, WidgetRef ref, HealthProfile p) {
+    HealthBaselineSheet.show(
+      ctx,
+      title: 'Cycle length',
+      description: 'Average days from one period start to the next.',
+      initialValue: p.safeCycleLength.toDouble(),
+      min: 20,
+      max: 45,
+      unit: 'days',
+      icon: Icons.cached_rounded,
+      tooltipText:
+          'A typical cycle lasts between 21 and 35 days. Tracking this accurately helps predict your fertile window and next period with higher precision.',
+      onSave: (val) => ref
+          .read(healthProfileProvider.notifier)
+          .update((p) => p.copyWith(cycleLength: val)),
+    );
+  }
+
+  void _editPeriodLength(BuildContext ctx, WidgetRef ref, HealthProfile p) {
+    HealthBaselineSheet.show(
+      ctx,
+      title: 'Period length',
+      description: 'Number of active bleeding days each cycle.',
+      initialValue: p.safePeriodLength.toDouble(),
+      min: 2,
+      max: 10,
+      unit: 'days',
+      icon: Icons.water_drop_outlined,
+      tooltipText:
+          'Bleeding typically lasts 3 to 7 days. Knowing your duration lets the app estimate when your follicular phase begins.',
+      onSave: (val) => ref
+          .read(healthProfileProvider.notifier)
+          .update((p) => p.copyWith(periodLength: val)),
+    );
+  }
+
+  void _editWaterGoal(BuildContext ctx, WidgetRef ref, HealthProfile p) {
+    HealthBaselineSheet.show(
+      ctx,
+      title: 'Daily water goal',
+      description: 'Target daily hydration to support hormonal balance.',
+      initialValue: p.dailyWaterGoalMl.toDouble(),
+      min: 1000,
+      max: 4000,
+      unit: 'ml',
+      icon: Icons.local_drink_outlined,
+      tooltipText:
+          'Adequate hydration helps reduce bloating, eases menstrual cramps, and supports optimal energy during luteal phase.',
+      onSave: (val) => ref
+          .read(healthProfileProvider.notifier)
+          .update((p) => p.copyWith(dailyWaterGoalMl: val)),
+    );
+  }
+
+  void _editSleepGoal(BuildContext ctx, WidgetRef ref, HealthProfile p) {
+    HealthBaselineSheet.show(
+      ctx,
+      title: 'Target sleep',
+      description: 'Target nightly rest hours for hormonal recovery.',
+      initialValue: p.targetSleepHours,
+      min: 5,
+      max: 12,
+      unit: 'hours',
+      icon: Icons.bedtime_outlined,
+      tooltipText:
+          'Consistent quality sleep regulates melatonin and cortisol, essential for stable estrogen and progesterone rhythms.',
+      onSave: (val) => ref
+          .read(healthProfileProvider.notifier)
+          .update((p) => p.copyWith(targetSleepHours: val.toDouble())),
+    );
+  }
+
+  void _editLastPeriod(BuildContext ctx, WidgetRef ref, HealthProfile p) async {
+    final d = await showDatePicker(
+      context: ctx,
+      initialDate: p.lastPeriodDate ?? DateTime.now(),
+      firstDate: DateTime.now().subtract(const Duration(days: 90)),
+      lastDate: DateTime.now(),
+    );
+    if (d != null) {
+      ref
+          .read(healthProfileProvider.notifier)
+          .update((p) => p.copyWith(lastPeriodDate: d));
+    }
+  }
+
+  void _editAgeRange(BuildContext ctx, WidgetRef ref, HealthProfile p) {
+    const ranges = ['Under 18', '18–24', '25–34', '35–44', '45–54', '55+'];
+    showDialog(
+      context: ctx,
+      builder: (dialogCtx) => SimpleDialog(
+        title: const Text('Age range'),
+        children: ranges.map((r) {
+          final isSelected = p.ageRange == r;
+          return SimpleDialogOption(
+            onPressed: () {
+              ref.read(healthProfileProvider.notifier).update(
+                    (p) => p.copyWith(ageRange: r),
+                  );
+              Navigator.of(dialogCtx).pop();
+            },
+            child: Row(
+              children: [
+                Expanded(child: Text(r)),
+                if (isSelected)
+                  const Icon(Icons.check_rounded, color: KholoColors.plum, size: 16),
+              ],
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+
+
+  void _showDeleteDialog(BuildContext ctx, WidgetRef ref) {
+    showDialog(
+      context: ctx,
+      builder: (_) => AlertDialog(
+        title: const Text('Delete account and data?'),
+        content: const Text(
+          'This will erase all your health logs, baby profiles, and account information. This action cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('Cancel')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: KholoColors.error),
+            onPressed: () async {
+              await ref.read(localStorageProvider).clearAllData();
+              await ref.read(authProvider.notifier).signOut();
+              if (ctx.mounted) Navigator.of(ctx).pop();
+            },
+            child: const Text('Delete everything'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _fmtDate(DateTime d) {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return '${d.day} ${months[d.month - 1]} ${d.year}';
+  }
+}
+
+// ── Shared profile widgets ────────────────────────────────────────────────────
+
+class _ProfileHeader extends StatelessWidget {
+  const _ProfileHeader({required this.email});
+  final String email;
+
+  @override
+  Widget build(BuildContext context) {
+    final tt = Theme.of(context).textTheme;
+    final initials =
+        email.isNotEmpty ? email.substring(0, 1).toUpperCase() : 'K';
+
+    return Row(
+      children: [
+        Container(
+          width: 64,
+          height: 64,
+          decoration: const BoxDecoration(
+            color: KholoColors.lavenderLight,
+            shape: BoxShape.circle,
+          ),
+          child: Center(
+            child: Text(
+              initials,
+              style: GoogleFonts.playfairDisplay(
+                fontSize: 26,
+                fontWeight: FontWeight.w700,
+                color: KholoColors.plum,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Your private space', style: tt.titleLarge),
+              Text(email,
+                  style: tt.bodySmall?.copyWith(color: KholoColors.inkMuted),
+                  overflow: TextOverflow.ellipsis),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _SectionTitle extends StatelessWidget {
+  const _SectionTitle(this.text);
+  final String text;
+  @override
+  Widget build(BuildContext context) => Text(
+        text.toUpperCase(),
+        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              letterSpacing: 1.2,
+              color: KholoColors.inkSubtle,
+            ),
+      );
+}
+
+class _ProfileCard extends StatelessWidget {
+  const _ProfileCard({required this.children});
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(
+        color: KholoColors.cream,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: KholoColors.divider),
+      ),
+      child: Column(children: children),
+    );
+  }
+}
+
+class _EditableRow extends StatelessWidget {
+  const _EditableRow({
+    required this.label,
+    required this.value,
+    required this.icon,
+    required this.onEdit,
+  });
+  final String label;
+  final String value;
+  final IconData icon;
+  final VoidCallback onEdit;
+
+  @override
+  Widget build(BuildContext context) {
+    final tt = Theme.of(context).textTheme;
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      decoration: const BoxDecoration(
+        border: Border(bottom: BorderSide(color: KholoColors.divider)),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, size: 18, color: KholoColors.inkSubtle),
+          const SizedBox(width: 12),
+          Expanded(child: Text(label, style: tt.bodyMedium)),
+          Text(value,
+              style: tt.bodyMedium?.copyWith(color: KholoColors.plum)),
+          const SizedBox(width: 8),
+          GestureDetector(
+            onTap: onEdit,
+            child: const Icon(Icons.edit_outlined,
+                size: 16, color: KholoColors.inkSubtle),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StaticRow extends StatelessWidget {
+  const _StaticRow({required this.icon, required this.label, required this.subtitle});
+  final IconData icon;
+  final String label;
+  final String subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    final tt = Theme.of(context).textTheme;
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      decoration: const BoxDecoration(
+        border: Border(bottom: BorderSide(color: KholoColors.divider)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 18, color: KholoColors.plum),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label, style: tt.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
+                Text(subtitle,
+                    style: tt.bodySmall?.copyWith(color: KholoColors.inkMuted, height: 1.4)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ActionRow extends StatelessWidget {
+  const _ActionRow({
+    required this.icon,
+    required this.label,
+    required this.color,
+    required this.onTap,
+  });
+  final IconData icon;
+  final String label;
+  final Color color;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final tt = Theme.of(context).textTheme;
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        decoration: const BoxDecoration(
+          border: Border(bottom: BorderSide(color: KholoColors.divider)),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, size: 18, color: color),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(label,
+                  style: tt.bodyMedium?.copyWith(color: color)),
+            ),
+            Icon(Icons.chevron_right_rounded, size: 18, color: color),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Settings Toggle Rows ──────────────────────────────────────────────────────
+
+class _SettingsToggleRow extends StatelessWidget {
+  const _SettingsToggleRow({
+    required this.icon,
+    required this.label,
+    required this.subtitle,
+    required this.value,
+    required this.onChanged,
+  });
+  final IconData icon;
+  final String label;
+  final String subtitle;
+  final bool value;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final tt = Theme.of(context).textTheme;
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      decoration: const BoxDecoration(
+        border: Border(bottom: BorderSide(color: KholoColors.divider)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 36, height: 36,
+            decoration: const BoxDecoration(
+              color: KholoColors.lavenderLight,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, color: KholoColors.plum, size: 18),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label,
+                    style: tt.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
+                Text(subtitle,
+                    style: tt.bodySmall?.copyWith(color: KholoColors.inkMuted)),
+              ],
+            ),
+          ),
+          Switch.adaptive(
+            value: value,
+            activeTrackColor: KholoColors.wine,
+            onChanged: onChanged,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _BiometricToggleRow extends StatefulWidget {
+  const _BiometricToggleRow({required this.value, required this.onChanged});
+  final bool value;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  State<_BiometricToggleRow> createState() => _BiometricToggleRowState();
+}
+
+class _BiometricToggleRowState extends State<_BiometricToggleRow> {
+  bool _available = false;
+
+  @override
+  void initState() {
+    super.initState();
+    BiometricService.isAvailable().then((v) {
+      if (mounted) setState(() => _available = v);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final tt = Theme.of(context).textTheme;
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        children: [
+          Container(
+            width: 36, height: 36,
+            decoration: const BoxDecoration(
+              color: KholoColors.roseLight,
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.fingerprint_rounded,
+                color: KholoColors.rose, size: 20),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Biometric lock',
+                    style: tt.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
+                Text(
+                  _available
+                      ? 'Require fingerprint/face to open app'
+                      : 'Not available on this device',
+                  style: tt.bodySmall?.copyWith(color: KholoColors.inkMuted),
+                ),
+              ],
+            ),
+          ),
+          Switch.adaptive(
+            value: widget.value,
+            activeTrackColor: KholoColors.wine,
+            onChanged: _available ? widget.onChanged : null,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
