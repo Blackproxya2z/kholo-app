@@ -10,6 +10,7 @@ import '../../core/models/health_profile.dart';
 import '../../core/models/product.dart';
 import '../../core/providers/providers.dart';
 import '../../core/services/update_service.dart';
+import '../../core/services/notification_service.dart';
 import '../../core/utils/cycle_engine.dart';
 import '../../shared/widgets/phase_card.dart';
 import '../../shared/widgets/log_bottom_sheet.dart';
@@ -50,6 +51,12 @@ class _TodayScreenState extends ConsumerState<TodayScreen> {
         _currentVersionCode = currentCode;
         _pendingUpdate = update;
       });
+
+      // Show system status bar notification
+      await NotificationService.showUpdateNotification(
+        version: update.latestVersion,
+        releaseNotes: update.releaseNotes,
+      );
 
       // If mandatory, automatically trigger dialog
       if (update.isMandatory(currentCode)) {

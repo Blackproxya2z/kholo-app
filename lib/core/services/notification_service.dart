@@ -133,6 +133,38 @@ class NotificationService {
     );
   }
 
+  /// Shows an immediate system status bar notification when an update is found.
+  static Future<void> showUpdateNotification({
+    required String version,
+    String? releaseNotes,
+  }) async {
+    await init();
+    const androidDetails = AndroidNotificationDetails(
+      'kholo_updates',
+      'App Updates',
+      channelDescription: 'Notifications for new KHOLO features and updates',
+      importance: Importance.high,
+      priority: Priority.high,
+      color: Color(0xFF92003A),
+      icon: '@mipmap/launcher_icon',
+    );
+    const iosDetails = DarwinNotificationDetails(
+      presentAlert: true,
+      presentBadge: true,
+      presentSound: true,
+    );
+    const details = NotificationDetails(android: androidDetails, iOS: iosDetails);
+
+    await _plugin.show(
+      9999,
+      '🌸 New KHOLO Update: v$version Available!',
+      releaseNotes != null && releaseNotes.isNotEmpty
+          ? releaseNotes
+          : 'Tap to update KHOLO to the latest version.',
+      details,
+    );
+  }
+
   /// Cancel all scheduled KHOLO notifications.
   static Future<void> cancelAll() async {
     await _plugin.cancelAll();
