@@ -9,7 +9,7 @@ import 'package:kholo/core/models/health_profile.dart';
 import 'package:kholo/features/landing/landing_screen.dart';
 import 'package:kholo/features/today/today_screen.dart';
 import 'package:kholo/shared/widgets/phase_card.dart';
-
+import 'package:kholo/shared/widgets/kholo_animated_loader.dart';
 import 'package:kholo/core/providers/app_settings_provider.dart';
 
 void main() {
@@ -85,9 +85,46 @@ void main() {
           child: const KholoApp(),
         ),
       );
-      await tester.pump(const Duration(milliseconds: 500));
-
       expect(find.text('KHOLO'), findsWidgets);
+    });
+
+    testWidgets('KholoGlowingLogo renders blooming lotus and starlight sparkles', (tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: Center(
+              child: KholoGlowingLogo(
+                size: 90,
+                showSparkles: true,
+                showHalo: true,
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump(const Duration(milliseconds: 300));
+
+      expect(find.byType(KholoGlowingLogo), findsOneWidget);
+      expect(find.byIcon(Icons.spa_rounded), findsOneWidget);
+      expect(find.byIcon(Icons.auto_awesome), findsWidgets);
+    });
+
+    testWidgets('KholoAnimatedLoader renders branded text and message', (tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: KholoAnimatedLoader(
+              message: 'Preparing your care space...',
+              size: 80,
+            ),
+          ),
+        ),
+      );
+      await tester.pump(const Duration(milliseconds: 300));
+
+      expect(find.byType(KholoAnimatedLoader), findsOneWidget);
+      expect(find.text('KHOLO'), findsOneWidget);
+      expect(find.text('Preparing your care space...'), findsOneWidget);
     });
   });
 }
