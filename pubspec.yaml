@@ -1,7 +1,7 @@
 name: kholo
 description: "KHOLO — One calm home for body, baby, and everyday care."
 publish_to: 'none'
-version: 1.0.0+1
+version: 1.1.0+2
 
 environment:
   sdk: ^3.5.0
@@ -50,6 +50,8 @@ dependencies:
   flutter_local_notifications: ^18.0.0
   share_plus: ^10.1.1
   local_auth: ^2.3.0
+  camera: ^0.11.0+2
+  camera_android: ^0.10.9+5
 
 dev_dependencies:
   flutter_test:

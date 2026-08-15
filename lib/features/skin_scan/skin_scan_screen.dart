@@ -1,16 +1,19 @@
 import 'dart:math' as math;
+import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:permission_handler/permission_handler.dart';
 import '../../app/theme/colors.dart';
 
-/// ─── AI ROBOTIC SKIN & FACE SCANNER (ON-DEVICE) ─────────────────────────────
+/// ─── AI ROBOTIC SKIN & FACE SCANNER (REAL CAMERA + HUD) ─────────────────────
 ///
 /// Features:
-/// 1. Interactive holographic & robotic face scanner HUD with laser beam & nodes.
-/// 2. Multi-point biometric skin diagnostic analysis.
-/// 3. Comprehensive Bengali Skincare Doctor recommendations (AM/PM routines, tips).
-/// 4. 100% on-device and private.
+/// 1. Real Front Camera stream preview with smooth on-device fallback.
+/// 2. Interactive holographic & robotic face scanner HUD with laser beam & nodes.
+/// 3. Multi-point biometric skin diagnostic analysis.
+/// 4. Comprehensive Bengali Skincare Doctor recommendations (AM/PM routines, tips).
+/// 5. 100% on-device and private.
 /// ────────────────────────────────────────────────────────────────────────────
 class SkinScanScreen extends StatefulWidget {
   const SkinScanScreen({super.key});
@@ -24,6 +27,10 @@ enum _ScanPhase { ready, scanning, analyzing, completed }
 class _SkinScanScreenState extends State<SkinScanScreen>
     with TickerProviderStateMixin {
   _ScanPhase _phase = _ScanPhase.ready;
+
+  CameraController? _cameraController;
+  bool _cameraInitialized = false;
+  bool _cameraError = false;
 
   late final AnimationController _laserCtrl;
   late final AnimationController _pulseCtrl;
@@ -66,10 +73,53 @@ class _SkinScanScreenState extends State<SkinScanScreen>
       vsync: this,
       duration: const Duration(seconds: 8),
     )..repeat();
+
+    _initCamera();
+  }
+
+  Future<void> _initCamera() async {
+    try {
+      final status = await Permission.camera.request();
+      if (!status.isGranted) {
+        if (mounted) setState(() => _cameraError = true);
+        return;
+      }
+
+      final cameras = await availableCameras();
+      if (cameras.isEmpty) {
+        if (mounted) setState(() => _cameraError = true);
+        return;
+      }
+
+      // Pick front camera if available, otherwise first camera
+      final frontCamera = cameras.firstWhere(
+        (c) => c.lensDirection == CameraLensDirection.front,
+        orElse: () => cameras.first,
+      );
+
+      final controller = CameraController(
+        frontCamera,
+        ResolutionPreset.medium,
+        enableAudio: false,
+      );
+
+      await controller.initialize();
+      if (mounted) {
+        setState(() {
+          _cameraController = controller;
+          _cameraInitialized = true;
+          _cameraError = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('[SkinScanScreen] Camera init error: $e');
+      if (mounted) setState(() => _cameraError = true);
+    }
   }
 
   @override
   void dispose() {
+    _cameraController?.dispose();
     _laserCtrl.dispose();
     _pulseCtrl.dispose();
     _rotationCtrl.dispose();
@@ -202,7 +252,7 @@ class _SkinScanScreenState extends State<SkinScanScreen>
 
         const SizedBox(height: 24),
 
-        // Main Holographic Scanner Viewport
+        // Main Holographic Scanner Viewport with Live Camera
         Expanded(
           child: Center(
             child: AspectRatio(
@@ -211,10 +261,10 @@ class _SkinScanScreenState extends State<SkinScanScreen>
                 margin: const EdgeInsets.symmetric(horizontal: 24),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(36),
-                  gradient: LinearGradient(
+                  gradient: const LinearGradient(
                     colors: [
-                      const Color(0xFF1E142B),
-                      const Color(0xFF120B1D),
+                      Color(0xFF1E142B),
+                      Color(0xFF120B1D),
                     ],
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
@@ -235,18 +285,41 @@ class _SkinScanScreenState extends State<SkinScanScreen>
                   borderRadius: BorderRadius.circular(34),
                   child: Stack(
                     alignment: Alignment.center,
+                    fit: StackFit.expand,
                     children: [
-                      // Camera Simulation Silhouette
-                      Opacity(
-                        opacity: 0.45,
-                        child: Icon(
-                          Icons.face_retouching_natural_rounded,
-                          size: 190,
-                          color: const Color(0xFFFFAEC9),
+                      // 1. Live Camera Stream (or fallback silhouette)
+                      if (_cameraInitialized && _cameraController != null)
+                        CameraPreview(_cameraController!)
+                      else
+                        const Center(
+                          child: Opacity(
+                            opacity: 0.45,
+                            child: Icon(
+                              Icons.face_retouching_natural_rounded,
+                              size: 190,
+                              color: Color(0xFFFFAEC9),
+                            ),
+                          ),
                         ),
-                      ),
 
-                      // Robotic Reticle & Landmarks
+                      // 2. Camera Status Indicator if failed
+                      if (_cameraError)
+                        Positioned(
+                          bottom: 12,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withValues(alpha: 0.6),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Text(
+                              '📷 AI Simulator Mode Active',
+                              style: TextStyle(color: Colors.white70, fontSize: 10),
+                            ),
+                          ),
+                        ),
+
+                      // 3. Robotic Reticle & Landmarks Overlay
                       AnimatedBuilder(
                         animation: Listenable.merge([_laserCtrl, _pulseCtrl, _rotationCtrl]),
                         builder: (context, _) {
@@ -262,7 +335,7 @@ class _SkinScanScreenState extends State<SkinScanScreen>
                         },
                       ),
 
-                      // Scanning Diagnostic Nodes
+                      // 4. Scanning Diagnostic Nodes
                       if (_phase == _ScanPhase.scanning) ...[
                         _buildDiagnosticNode(
                           top: 80,
@@ -631,7 +704,6 @@ class _RoboticFaceHudPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
-    final radius = size.width * 0.42;
 
     // 1. Oval Face Frame Target
     final faceOvalRect = Rect.fromCenter(
@@ -677,12 +749,12 @@ class _RoboticFaceHudPainter extends CustomPainter {
       final laserY = r.top + (r.height * laserProgress);
 
       final laserPaint = Paint()
-        ..shader = LinearGradient(
+        ..shader = const LinearGradient(
           colors: [
             Colors.transparent,
-            const Color(0xFFF62477),
-            const Color(0xFFF8D880),
-            const Color(0xFFF62477),
+            Color(0xFFF62477),
+            Color(0xFFF8D880),
+            Color(0xFFF62477),
             Colors.transparent,
           ],
         ).createShader(Rect.fromLTWH(r.left, laserY - 2, r.width, 4))

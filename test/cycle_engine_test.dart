@@ -197,5 +197,36 @@ void main() {
       expect(ctx.cycleDay, 14);
       expect(ctx.isInFertileWindow, isTrue);
     });
+
+    test('calculateAdaptiveCycleLength computes weighted average properly', () {
+      // Empty history falls back to baseline
+      expect(
+        CycleEngine.calculateAdaptiveCycleLength(
+          historicalCycleLengths: [],
+          baselineLength: 28,
+        ),
+        28,
+      );
+
+      // Single history weighted 70% history + 30% baseline
+      // (30 * 0.7) + (28 * 0.3) = 21 + 8.4 = 29.4 -> 29
+      expect(
+        CycleEngine.calculateAdaptiveCycleLength(
+          historicalCycleLengths: [30],
+          baselineLength: 28,
+        ),
+        29,
+      );
+
+      // 3 cycles: weights 50% for latest (32), 30% for middle (30), 20% for oldest (28)
+      // (32 * 0.5) + (30 * 0.3) + (28 * 0.2) = 16 + 9 + 5.6 = 30.6 -> 31
+      expect(
+        CycleEngine.calculateAdaptiveCycleLength(
+          historicalCycleLengths: [28, 30, 32],
+          baselineLength: 28,
+        ),
+        31,
+      );
+    });
   });
 }

@@ -224,6 +224,31 @@ class CycleEngine {
       daysUntilNextPeriod: days,
     );
   }
+
+  /// Adaptive weighted average cycle length prediction based on historical cycle logs.
+  /// Gives highest weight (50%) to the most recent cycle, 30% to the 2nd most recent,
+  /// and 20% to the 3rd most recent.
+  static int calculateAdaptiveCycleLength({
+    required List<int> historicalCycleLengths,
+    required int baselineLength,
+  }) {
+    if (historicalCycleLengths.isEmpty) return baselineLength;
+    if (historicalCycleLengths.length == 1) {
+      return ((historicalCycleLengths.first * 0.7) + (baselineLength * 0.3)).round();
+    }
+
+    final recent = historicalCycleLengths.reversed.take(3).toList();
+    double weightedSum = 0.0;
+    double totalWeight = 0.0;
+
+    const weights = [0.5, 0.3, 0.2];
+    for (int i = 0; i < recent.length; i++) {
+      weightedSum += recent[i] * weights[i];
+      totalWeight += weights[i];
+    }
+
+    return (weightedSum / totalWeight).round().clamp(21, 45);
+  }
 }
 
 // ── Value objects ─────────────────────────────────────────────────────────────
