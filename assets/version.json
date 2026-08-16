@@ -1,8 +1,17 @@
 {
-  "latest_version": "1.0.0",
-  "version_code": 1,
+  "latestVersion": "1.2.0",
+  "latest_version": "1.2.0",
+  "versionCode": 99,
+  "version_code": 99,
+  "minRequiredVersionCode": 1,
   "min_required_version_code": 1,
+  "releaseNotes": "🌸 নতুন KHOLO v1.2.0 আপডেট উপলব্ধ!\n\n• 📷 লাইভ ক্যামেরা AI স্কিন ডক্টর স্ক্যানার\n• 🩺 বাংলা প্রেসক্রিপশন ও রুটিন\n• ⚡ ইন-অ্যাপ অটো-আপডেট ইঞ্জিন",
+  "release_notes": "🌸 নতুন KHOLO v1.2.0 আপডেট উপলব্ধ!\n\n• 📷 লাইভ ক্যামেরা AI স্কিন ডক্টর স্ক্যানার\n• 🩺 বাংলা প্রেসক্রিপশন ও রুটিন\n• ⚡ ইন-অ্যাপ অটো-আপডেট ইঞ্জিন",
+  "apkUrl": "https://github.com/Blackproxya2z/kholo-app/releases/download/v1.0.0/app-release.apk",
   "download_url": "https://github.com/Blackproxya2z/kholo-app/releases/download/v1.0.0/app-release.apk",
-  "apk_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-  "release_notes": "Initial release of KHOLO — One calm home for body, baby, and everyday care with SHA-256 anti-tamper validation."
+  "apkSha256": "a046597c608da6343865bcfb8b0366b39e32e55ea197be1a69e52c3f33a8dcb0",
+  "apk_sha256": "a046597c608da6343865bcfb8b0366b39e32e55ea197be1a69e52c3f33a8dcb0",
+  "forceUpdate": false,
+  "force_update": false
 }
+

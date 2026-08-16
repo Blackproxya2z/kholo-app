@@ -37,13 +37,22 @@ class AppUpdate {
 
   /// Factory constructor supporting both camelCase and snake_case keys (PRD specification)
   factory AppUpdate.fromJson(Map<String, dynamic> json) {
-    final latestVer = (json['latest_version'] ?? json['latestVersion']) as String? ?? '1.0.0';
-    final code = (json['version_code'] ?? json['versionCode']) as int? ?? 1;
-    final minCode = (json['min_required_version_code'] ?? json['minRequiredVersionCode']) as int?;
-    final notes = (json['release_notes'] ?? json['releaseNotes']) as String? ?? '';
-    final url = (json['download_url'] ?? json['apkUrl'] ?? json['apk_url']) as String? ?? '';
-    final sha = (json['apk_sha256'] ?? json['apkSha256']) as String?;
-    final explicitForce = (json['force_update'] ?? json['forceUpdate']) as bool? ?? false;
+    final latestVer = (json['latest_version'] ?? json['latestVersion'] ?? '1.0.0').toString();
+    final rawCode = json['version_code'] ?? json['versionCode'] ?? 1;
+    final code = rawCode is int ? rawCode : int.tryParse(rawCode.toString()) ?? 1;
+
+    final rawMinCode = json['min_required_version_code'] ?? json['minRequiredVersionCode'];
+    final minCode = rawMinCode is int
+        ? rawMinCode
+        : (rawMinCode != null ? int.tryParse(rawMinCode.toString()) : null);
+
+    final notes = (json['release_notes'] ?? json['releaseNotes'] ?? '').toString();
+    final url = (json['download_url'] ?? json['apkUrl'] ?? json['apk_url'] ?? '').toString();
+    final sha = (json['apk_sha256'] ?? json['apkSha256'])?.toString();
+    final rawForce = json['force_update'] ?? json['forceUpdate'];
+    final explicitForce = rawForce is bool
+        ? rawForce
+        : (rawForce?.toString().toLowerCase() == 'true');
 
     return AppUpdate(
       latestVersion: latestVer,

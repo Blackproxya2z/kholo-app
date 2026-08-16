@@ -183,6 +183,24 @@ void main() {
       expect(update.isMandatory(16), isFalse);
     });
 
+    test('AppUpdate parses legacy camelCase schema and string-coerced values safely', () {
+      final legacyJson = {
+        'latestVersion': '1.3.0',
+        'versionCode': '3',
+        'minRequiredVersionCode': '2',
+        'apkUrl': 'https://github.com/Blackproxya2z/kholo-app/releases/download/v1.3.0/app-release.apk',
+        'releaseNotes': 'Dual key backward compatibility.',
+        'forceUpdate': 'false',
+      };
+
+      final update = AppUpdate.fromJson(legacyJson);
+      expect(update.latestVersion, '1.3.0');
+      expect(update.versionCode, 3);
+      expect(update.minRequiredVersionCode, 2);
+      expect(update.apkUrl, contains('app-release.apk'));
+      expect(update.forceUpdate, isFalse);
+    });
+
     test('SyncQueueItem serialization and SyncEngine LWW conflict resolution', () {
       final queueItem = SyncQueueItem(
         queueId: 'q-101',

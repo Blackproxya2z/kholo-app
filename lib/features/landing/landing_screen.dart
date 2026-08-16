@@ -38,6 +38,7 @@ class _LandingScreenState extends State<LandingScreen>
       end: const Alignment(0.6, 0.2),
     ).animate(CurvedAnimation(parent: _orbCtrl, curve: Curves.easeInOut));
 
+    NotificationService.requestPermission();
     _checkForUpdate();
   }
 

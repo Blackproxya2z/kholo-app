@@ -32,16 +32,50 @@ class NotificationService {
     await _plugin.initialize(
       const InitializationSettings(android: android, iOS: ios),
     );
+
+    // Proactively register notification channels on Android
+    if (Platform.isAndroid) {
+      final androidPlugin = _plugin.resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin>();
+      if (androidPlugin != null) {
+        await androidPlugin.createNotificationChannel(
+          const AndroidNotificationChannel(
+            'kholo_updates_channel',
+            'KHOLO App Updates',
+            description: 'Important updates and new features for KHOLO',
+            importance: Importance.max,
+            enableVibration: true,
+            playSound: true,
+          ),
+        );
+        await androidPlugin.createNotificationChannel(
+          const AndroidNotificationChannel(
+            _channelId,
+            _channelName,
+            description: _channelDesc,
+            importance: Importance.high,
+            enableVibration: true,
+            playSound: true,
+          ),
+        );
+      }
+    }
+
     _initialized = true;
   }
 
   /// Request notification permission on Android 13+.
   static Future<bool> requestPermission() async {
     if (!Platform.isAndroid) return true;
-    final androidPlugin =
-        _plugin.resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>();
-    return await androidPlugin?.requestNotificationsPermission() ?? false;
+    try {
+      final androidPlugin =
+          _plugin.resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin>();
+      final granted = await androidPlugin?.requestNotificationsPermission() ?? false;
+      return granted;
+    } catch (_) {
+      return false;
+    }
   }
 
   /// Schedule all cycle-based reminders based on [profile].
@@ -139,12 +173,16 @@ class NotificationService {
     String? releaseNotes,
   }) async {
     await init();
+    await requestPermission();
+
     const androidDetails = AndroidNotificationDetails(
-      'kholo_updates',
-      'App Updates',
-      channelDescription: 'Notifications for new KHOLO features and updates',
-      importance: Importance.high,
-      priority: Priority.high,
+      'kholo_updates_channel',
+      'KHOLO App Updates',
+      channelDescription: 'Important updates and new features for KHOLO',
+      importance: Importance.max,
+      priority: Priority.max,
+      enableVibration: true,
+      playSound: true,
       color: Color(0xFF92003A),
       icon: '@mipmap/launcher_icon',
     );
@@ -157,10 +195,10 @@ class NotificationService {
 
     await _plugin.show(
       9999,
-      '🌸 New KHOLO Update: v$version Available!',
+      '🌸 নতুন KHOLO v$version আপডেট উপলব্ধ!',
       releaseNotes != null && releaseNotes.isNotEmpty
-          ? releaseNotes
-          : 'Tap to update KHOLO to the latest version.',
+          ? 'নতুন আপডেটটি ডাউনলোড করতে ট্যাপ করুন।'
+          : 'নতুন ফিচারসমূহ উপভোগ করতে KHOLO আপডেট করুন।',
       details,
     );
   }
