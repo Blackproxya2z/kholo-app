@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../app/theme/colors.dart';
 import '../../core/models/app_update.dart';
 import '../../core/models/cycle_log.dart';
@@ -63,12 +64,17 @@ class _TodayScreenState extends ConsumerState<TodayScreen>
     final currentCode = await UpdateService.currentVersionCode();
     final update = await UpdateService.checkForUpdate();
     if (mounted) {
-      setState(() {
-        _currentVersionCode = currentCode;
-        _pendingUpdate = update;
-      });
-
       if (update != null) {
+        final prefs = await SharedPreferences.getInstance();
+        final dismissedCode = prefs.getInt('kholo_dismissed_update_code') ?? 0;
+        final isMandatory = update.isMandatory(currentCode);
+        final shouldShowBanner = isMandatory || (update.versionCode > dismissedCode);
+
+        setState(() {
+          _currentVersionCode = currentCode;
+          _pendingUpdate = shouldShowBanner ? update : null;
+        });
+
         if (showNotification) {
           // Show system status bar notification once per new version release
           await NotificationService.showUpdateNotification(
@@ -79,13 +85,18 @@ class _TodayScreenState extends ConsumerState<TodayScreen>
         }
 
         // If mandatory, automatically trigger dialog
-        if (update.isMandatory(currentCode)) {
+        if (isMandatory) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (mounted) {
               UpdateDialog.show(context, update, currentVersionCode: currentCode);
             }
           });
         }
+      } else {
+        setState(() {
+          _currentVersionCode = currentCode;
+          _pendingUpdate = null;
+        });
       }
     }
   }
@@ -158,8 +169,14 @@ class _TodayScreenState extends ConsumerState<TodayScreen>
               UpdateBanner(
                 update: _pendingUpdate!,
                 currentVersionCode: _currentVersionCode,
-                onDismiss: () =>
-                    setState(() => _pendingUpdate = null),
+                onDismiss: () async {
+                  final code = _pendingUpdate?.versionCode;
+                  setState(() => _pendingUpdate = null);
+                  if (code != null) {
+                    final prefs = await SharedPreferences.getInstance();
+                    await prefs.setInt('kholo_dismissed_update_code', code);
+                  }
+                },
               ),
 
             // ── Greeting Hero ─────────────────────────────────────────────
