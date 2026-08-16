@@ -55,33 +55,37 @@ class _TodayScreenState extends ConsumerState<TodayScreen>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
-      _checkForUpdate();
+      _checkForUpdate(showNotification: false);
     }
   }
 
-  Future<void> _checkForUpdate() async {
+  Future<void> _checkForUpdate({bool showNotification = true}) async {
     final currentCode = await UpdateService.currentVersionCode();
     final update = await UpdateService.checkForUpdate();
-    if (mounted && update != null) {
+    if (mounted) {
       setState(() {
         _currentVersionCode = currentCode;
         _pendingUpdate = update;
       });
 
-      // Show system status bar notification once per version release
-      await NotificationService.showUpdateNotification(
-        version: update.latestVersion,
-        versionCode: update.versionCode,
-        releaseNotes: update.releaseNotes,
-      );
+      if (update != null) {
+        if (showNotification) {
+          // Show system status bar notification once per new version release
+          await NotificationService.showUpdateNotification(
+            version: update.latestVersion,
+            versionCode: update.versionCode,
+            releaseNotes: update.releaseNotes,
+          );
+        }
 
-      // If mandatory, automatically trigger dialog
-      if (update.isMandatory(currentCode)) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted) {
-            UpdateDialog.show(context, update, currentVersionCode: currentCode);
-          }
-        });
+        // If mandatory, automatically trigger dialog
+        if (update.isMandatory(currentCode)) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              UpdateDialog.show(context, update, currentVersionCode: currentCode);
+            }
+          });
+        }
       }
     }
   }
@@ -141,7 +145,9 @@ class _TodayScreenState extends ConsumerState<TodayScreen>
       ),
       body: RefreshIndicator(
         color: KholoColors.wine,
-        onRefresh: () async => _checkForUpdate(),
+        onRefresh: () async {
+          await _checkForUpdate(showNotification: false);
+        },
         child: ListView(
           padding: const EdgeInsets.fromLTRB(20, 0, 20, 100),
           children: [

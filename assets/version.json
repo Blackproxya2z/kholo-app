@@ -1,16 +1,16 @@
 {
   "latestVersion": "1.2.0",
   "latest_version": "1.2.0",
-  "versionCode": 99,
-  "version_code": 99,
+  "versionCode": 2,
+  "version_code": 2,
   "minRequiredVersionCode": 1,
   "min_required_version_code": 1,
-  "releaseNotes": "🌸 নতুন KHOLO v1.2.0 আপডেট উপলব্ধ!\n\n• 📷 লাইভ ক্যামেরা AI স্কিন ডক্টর স্ক্যানার\n• 🩺 বাংলা প্রেসক্রিপশন ও রুটিন\n• ⚡ ইন-অ্যাপ অটো-আপডেট ইঞ্জিন",
-  "release_notes": "🌸 নতুন KHOLO v1.2.0 আপডেট উপলব্ধ!\n\n• 📷 লাইভ ক্যামেরা AI স্কিন ডক্টর স্ক্যানার\n• 🩺 বাংলা প্রেসক্রিপশন ও রুটিন\n• ⚡ ইন-অ্যাপ অটো-আপডেট ইঞ্জিন",
+  "releaseNotes": "🌸 নতুন KHOLO v1.2.0 আপডেট!\n\n• 📷 লাইভ ক্যামেরা AI স্কিন ডক্টর স্ক্যানার\n• 🩺 বাংলা প্রেসক্রিপশন ও রুটিন\n• ⚡ ইন-অ্যাপ অটো-আপডেট ইঞ্জিন",
+  "release_notes": "🌸 নতুন KHOLO v1.2.0 আপডেট!\n\n• 📷 লাইভ ক্যামেরা AI স্কিন ডক্টর স্ক্যানার\n• 🩺 বাংলা প্রেসক্রিপশন ও রুটিন\n• ⚡ ইন-অ্যাপ অটো-আপডেট ইঞ্জিন",
   "apkUrl": "https://github.com/Blackproxya2z/kholo-app/releases/download/v1.0.0/app-release.apk",
   "download_url": "https://github.com/Blackproxya2z/kholo-app/releases/download/v1.0.0/app-release.apk",
-  "apkSha256": "a046597c608da6343865bcfb8b0366b39e32e55ea197be1a69e52c3f33a8dcb0",
-  "apk_sha256": "a046597c608da6343865bcfb8b0366b39e32e55ea197be1a69e52c3f33a8dcb0",
+  "apkSha256": "8b37a29abe1a1763f106df1acc57ecb45f0218d4cd2063c413208b2565e2804b",
+  "apk_sha256": "8b37a29abe1a1763f106df1acc57ecb45f0218d4cd2063c413208b2565e2804b",
   "forceUpdate": false,
   "force_update": false
 }
