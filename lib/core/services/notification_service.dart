@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 import '../../core/models/health_profile.dart';
@@ -167,40 +168,60 @@ class NotificationService {
     );
   }
 
-  /// Shows an immediate system status bar notification when an update is found.
+  /// Shows an immediate system status bar notification when a NEW update is found.
+  /// Deduplicates so the user is only notified ONCE per version code release.
   static Future<void> showUpdateNotification({
     required String version,
+    required int versionCode,
     String? releaseNotes,
   }) async {
-    await init();
-    await requestPermission();
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final lastNotifiedCode = prefs.getInt('kholo_last_notified_update_code') ?? 0;
 
-    const androidDetails = AndroidNotificationDetails(
-      'kholo_updates_channel',
-      'KHOLO App Updates',
-      channelDescription: 'Important updates and new features for KHOLO',
-      importance: Importance.max,
-      priority: Priority.max,
-      enableVibration: true,
-      playSound: true,
-      color: Color(0xFF92003A),
-      icon: '@mipmap/launcher_icon',
-    );
-    const iosDetails = DarwinNotificationDetails(
-      presentAlert: true,
-      presentBadge: true,
-      presentSound: true,
-    );
-    const details = NotificationDetails(android: androidDetails, iOS: iosDetails);
+      // Only notify if this is a newer version code than the one previously notified
+      if (versionCode <= lastNotifiedCode) {
+        debugPrint(
+          '[NotificationService] Already notified for update versionCode: $versionCode (last: $lastNotifiedCode). Skipping notification.',
+        );
+        return;
+      }
 
-    await _plugin.show(
-      9999,
-      '🌸 নতুন KHOLO v$version আপডেট উপলব্ধ!',
-      releaseNotes != null && releaseNotes.isNotEmpty
-          ? 'নতুন আপডেটটি ডাউনলোড করতে ট্যাপ করুন।'
-          : 'নতুন ফিচারসমূহ উপভোগ করতে KHOLO আপডেট করুন।',
-      details,
-    );
+      await init();
+      await requestPermission();
+
+      const androidDetails = AndroidNotificationDetails(
+        'kholo_updates_channel',
+        'KHOLO App Updates',
+        channelDescription: 'Important updates and new features for KHOLO',
+        importance: Importance.max,
+        priority: Priority.max,
+        enableVibration: true,
+        playSound: true,
+        color: Color(0xFF92003A),
+        icon: '@mipmap/launcher_icon',
+      );
+      const iosDetails = DarwinNotificationDetails(
+        presentAlert: true,
+        presentBadge: true,
+        presentSound: true,
+      );
+      const details = NotificationDetails(android: androidDetails, iOS: iosDetails);
+
+      await _plugin.show(
+        9999,
+        '🌸 নতুন KHOLO v$version আপডেট উপলব্ধ!',
+        releaseNotes != null && releaseNotes.isNotEmpty
+            ? 'নতুন আপডেটটি ডাউনলোড করতে ট্যাপ করুন।'
+            : 'নতুন ফিচারসমূহ উপভোগ করতে KHOLO আপডেট করুন।',
+        details,
+      );
+
+      // Mark this version code as notified so subsequent app opens will NOT spam the user
+      await prefs.setInt('kholo_last_notified_update_code', versionCode);
+    } catch (e) {
+      debugPrint('[NotificationService] showUpdateNotification error: $e');
+    }
   }
 
   /// Cancel all scheduled KHOLO notifications.

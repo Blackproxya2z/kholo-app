@@ -7,6 +7,7 @@ import 'package:open_filex/open_filex.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import '../models/app_update.dart';
 
@@ -66,6 +67,17 @@ class UpdateService {
       );
 
       debugPrint('[UpdateService] Remote version: ${update.versionCode}, Current: $currentCode');
+
+      // If installed app is already up to date, sync last notified code
+      if (update.versionCode <= currentCode) {
+        try {
+          final prefs = await SharedPreferences.getInstance();
+          final lastNotified = prefs.getInt('kholo_last_notified_update_code') ?? 0;
+          if (currentCode > lastNotified) {
+            await prefs.setInt('kholo_last_notified_update_code', currentCode);
+          }
+        } catch (_) {}
+      }
 
       // Only show update if remote versionCode is strictly greater
       if (update.versionCode > currentCode && update.apkUrl.isNotEmpty) {

@@ -52,6 +52,7 @@ class _LandingScreenState extends State<LandingScreen>
       });
       await NotificationService.showUpdateNotification(
         version: update.latestVersion,
+        versionCode: update.versionCode,
         releaseNotes: update.releaseNotes,
       );
     }

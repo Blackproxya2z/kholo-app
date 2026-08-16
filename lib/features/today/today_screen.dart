@@ -68,9 +68,10 @@ class _TodayScreenState extends ConsumerState<TodayScreen>
         _pendingUpdate = update;
       });
 
-      // Show system status bar notification
+      // Show system status bar notification once per version release
       await NotificationService.showUpdateNotification(
         version: update.latestVersion,
+        versionCode: update.versionCode,
         releaseNotes: update.releaseNotes,
       );
 
