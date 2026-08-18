@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -6,11 +7,15 @@ import '../../app/theme/colors.dart';
 import '../../core/models/health_profile.dart';
 import '../../core/providers/providers.dart';
 import '../../core/services/notification_service.dart';
-import '../../shared/widgets/kholo_animated_loader.dart';
+import '../../shared/widgets/kholo_glowing_logo.dart';
 
-/// Five-step onboarding flow.
-/// Step 0: Welcome / app-intro (NEW — explains what KHOLO does)
-/// Steps 1–4: Cycle data collection (original steps 0–3)
+/// ─── FIVE-STEP PREMIUM ONBOARDING EXPERIENCE ──────────────────────────────
+/// Step 0: Welcome / luxury intro & brand mission
+/// Step 1: Typical cycle length & period duration
+/// Step 2: Last period start date
+/// Step 3: Age bracket & current life stage
+/// Step 4: Review & private on-device consent
+/// ────────────────────────────────────────────────────────────────────────────
 class OnboardingScreen extends ConsumerStatefulWidget {
   const OnboardingScreen({super.key});
 
@@ -38,7 +43,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
     final isFirstStep = _step == 0;
 
     return Scaffold(
-      backgroundColor: KholoColors.canvas,
+      backgroundColor: context.kCanvas,
       body: SafeArea(
         child: Column(
           children: [
@@ -50,14 +55,14 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
               child: SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(horizontal: 28),
                 child: AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 300),
+                  duration: const Duration(milliseconds: 320),
                   transitionBuilder: (child, anim) => FadeTransition(
                     opacity: anim,
                     child: SlideTransition(
                       position: Tween<Offset>(
                         begin: const Offset(0.06, 0),
                         end: Offset.zero,
-                      ).animate(CurvedAnimation(parent: anim, curve: Curves.easeOut)),
+                      ).animate(CurvedAnimation(parent: anim, curve: Curves.easeOutCubic)),
                       child: child,
                     ),
                   ),
@@ -77,7 +82,10 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
                   if (_step > 0)
                     Expanded(
                       child: OutlinedButton(
-                        onPressed: () => setState(() => _step--),
+                        onPressed: () {
+                          HapticFeedback.selectionClick();
+                          setState(() => _step--);
+                        },
                         child: const Text('Back'),
                       ),
                     ),
@@ -104,13 +112,16 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
               ),
             ),
 
-            // Skip (not shown on welcome or last step)
+            // Skip
             if (_step > 0 && _step < _totalSteps - 1)
               Padding(
                 padding: const EdgeInsets.only(bottom: 12),
                 child: TextButton(
                   onPressed: _skip,
-                  child: const Text('Skip setup, go to shop'),
+                  child: Text(
+                    'Skip setup, go to shop',
+                    style: TextStyle(color: context.kInkMuted),
+                  ),
                 ),
               )
             else if (_step == 0)
@@ -118,7 +129,10 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
                 padding: const EdgeInsets.only(bottom: 12),
                 child: TextButton(
                   onPressed: _skip,
-                  child: const Text('Skip — go straight to shop'),
+                  child: Text(
+                    'Skip — go straight to shop',
+                    style: TextStyle(color: context.kInkMuted),
+                  ),
                 ),
               ),
           ],
@@ -165,6 +179,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
   }
 
   void _advance() async {
+    HapticFeedback.selectionClick();
     if (_step < _totalSteps - 1) {
       setState(() => _step++);
     } else {
@@ -192,6 +207,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
   }
 
   void _skip() {
+    HapticFeedback.selectionClick();
     ref.read(healthProfileProvider.notifier).update(
           (p) => p.copyWith(onboardingComplete: false),
         );
@@ -240,7 +256,7 @@ class _StepWelcome extends StatelessWidget {
           style: GoogleFonts.playfairDisplay(
             fontSize: 32,
             fontWeight: FontWeight.w700,
-            color: KholoColors.ink,
+            color: context.kInk,
             letterSpacing: 3,
           ),
         ),
@@ -250,25 +266,25 @@ class _StepWelcome extends StatelessWidget {
         Text(
           'Your body, your journey —\nall in one calm space.',
           style: tt.bodyLarge?.copyWith(
-            color: KholoColors.inkMuted,
+            color: context.kInkMuted,
             height: 1.5,
           ),
           textAlign: TextAlign.center,
         ),
 
-        const SizedBox(height: 36),
+        const SizedBox(height: 32),
 
         // Feature highlights
         ...List.generate(_features.length, (i) {
           final f = _features[i];
           return TweenAnimationBuilder<double>(
             tween: Tween(begin: 0, end: 1),
-            duration: Duration(milliseconds: 400 + i * 80),
-            curve: Curves.easeOut,
+            duration: Duration(milliseconds: 350 + i * 70),
+            curve: Curves.easeOutCubic,
             builder: (_, v, child) => Opacity(
               opacity: v,
               child: Transform.translate(
-                offset: Offset(0, 20 * (1 - v)),
+                offset: Offset(0, 16 * (1 - v)),
                 child: child,
               ),
             ),
@@ -276,9 +292,17 @@ class _StepWelcome extends StatelessWidget {
               margin: const EdgeInsets.only(bottom: 10),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               decoration: BoxDecoration(
-                color: KholoColors.cream,
+                color: context.kCard,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: KholoColors.divider),
+                border: Border.all(color: context.kDivider),
+                boxShadow: [
+                  BoxShadow(
+                    color: KholoColors.wine
+                        .withValues(alpha: context.isDark ? 0.2 : 0.03),
+                    blurRadius: 10,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
               ),
               child: Row(
                 children: [
@@ -286,7 +310,7 @@ class _StepWelcome extends StatelessWidget {
                     width: 40,
                     height: 40,
                     decoration: BoxDecoration(
-                      color: f.$4.withValues(alpha: 0.15),
+                      color: f.$4.withValues(alpha: context.isDark ? 0.25 : 0.15),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Icon(f.$1, color: f.$4, size: 20),
@@ -296,13 +320,19 @@ class _StepWelcome extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(f.$2,
-                            style: tt.titleSmall
-                                ?.copyWith(fontWeight: FontWeight.w700)),
+                        Text(
+                          f.$2,
+                          style: tt.titleSmall?.copyWith(
+                            fontWeight: FontWeight.w700,
+                            color: context.kInk,
+                          ),
+                        ),
                         const SizedBox(height: 2),
-                        Text(f.$3,
-                            style: tt.bodySmall
-                                ?.copyWith(color: KholoColors.inkMuted)),
+                        Text(
+                          f.$3,
+                          style: tt.bodySmall
+                              ?.copyWith(color: context.kInkMuted),
+                        ),
                       ],
                     ),
                   ),
@@ -318,25 +348,27 @@ class _StepWelcome extends StatelessWidget {
         Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [KholoColors.lavenderLight, KholoColors.cream],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
+            color: context.isDark
+                ? context.kCardElevated
+                : KholoColors.lavenderLight,
             borderRadius: BorderRadius.circular(14),
             border: Border.all(
-                color: KholoColors.lavender.withValues(alpha: 0.4)),
+                color: (context.isDark
+                        ? KholoColors.magenta
+                        : KholoColors.lavender)
+                    .withValues(alpha: 0.3)),
           ),
           child: Row(
             children: [
-              const Icon(Icons.shield_outlined,
-                  color: KholoColors.plum, size: 18),
+              Icon(Icons.shield_outlined,
+                  color: context.isDark ? KholoColors.magenta : KholoColors.plum,
+                  size: 18),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
                   'Your data is stored privately on your device. KHOLO never shares your health data.',
                   style: tt.bodySmall
-                      ?.copyWith(color: KholoColors.inkMuted, height: 1.4),
+                      ?.copyWith(color: context.kInkMuted, height: 1.4),
                 ),
               ),
             ],
@@ -364,16 +396,19 @@ class _StepProgress extends StatelessWidget {
         children: [
           Text(
             'Step ${currentStep + 1} of $totalSteps',
-            style: Theme.of(context).textTheme.labelMedium,
+            style: Theme.of(context)
+                .textTheme
+                .labelMedium
+                ?.copyWith(color: context.kInkMuted),
           ),
           const SizedBox(height: 8),
           ClipRRect(
             borderRadius: BorderRadius.circular(4),
             child: LinearProgressIndicator(
               value: (currentStep + 1) / totalSteps,
-              backgroundColor: KholoColors.divider,
-              valueColor:
-                  const AlwaysStoppedAnimation<Color>(KholoColors.plum),
+              backgroundColor: context.kDivider,
+              valueColor: AlwaysStoppedAnimation<Color>(
+                  context.isDark ? KholoColors.magenta : KholoColors.plum),
               minHeight: 4,
             ),
           ),
@@ -405,11 +440,12 @@ class _StepCycleLength extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const SizedBox(height: 24),
-        Text('Your typical cycle', style: tt.displaySmall),
+        Text('Your typical cycle',
+            style: tt.displaySmall?.copyWith(color: context.kInk)),
         const SizedBox(height: 8),
         Text(
           'These help KHOLO estimate your phases. You can change them at any time.',
-          style: tt.bodyMedium?.copyWith(color: KholoColors.inkMuted),
+          style: tt.bodyMedium?.copyWith(color: context.kInkMuted),
         ),
         const SizedBox(height: 32),
         _SliderField(
@@ -418,7 +454,10 @@ class _StepCycleLength extends StatelessWidget {
           min: 21,
           max: 45,
           unit: 'days',
-          onChanged: onCycleChanged,
+          onChanged: (v) {
+            HapticFeedback.selectionClick();
+            onCycleChanged(v);
+          },
           hint: 'Typical range: 21–45 days',
         ),
         const SizedBox(height: 24),
@@ -428,7 +467,10 @@ class _StepCycleLength extends StatelessWidget {
           min: 2,
           max: 10,
           unit: 'days',
-          onChanged: onPeriodChanged,
+          onChanged: (v) {
+            HapticFeedback.selectionClick();
+            onPeriodChanged(v);
+          },
           hint: 'Typical range: 2–10 days',
         ),
       ],
@@ -464,16 +506,23 @@ class _SliderField extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(label, style: tt.titleMedium),
+            Text(label,
+                style: tt.titleMedium?.copyWith(color: context.kInk)),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
               decoration: BoxDecoration(
-                color: KholoColors.lavenderLight,
+                color: context.isDark
+                    ? context.kCardElevated
+                    : KholoColors.lavenderLight,
                 borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: context.kDivider),
               ),
               child: Text(
                 '$value $unit',
-                style: tt.titleMedium?.copyWith(color: KholoColors.plum),
+                style: tt.titleMedium?.copyWith(
+                    color: context.isDark
+                        ? KholoColors.blush
+                        : KholoColors.plum),
               ),
             ),
           ],
@@ -485,13 +534,15 @@ class _SliderField extends StatelessWidget {
             min: min.toDouble(),
             max: max.toDouble(),
             divisions: max - min,
-            activeColor: KholoColors.plum,
-            inactiveColor: KholoColors.lavenderLight,
+            activeColor:
+                context.isDark ? KholoColors.magenta : KholoColors.plum,
+            inactiveColor: context.kDivider,
             onChanged: (v) => onChanged(v.round()),
           ),
         ),
         if (hint != null)
-          Text(hint!, style: tt.bodySmall?.copyWith(color: KholoColors.inkSubtle)),
+          Text(hint!,
+              style: tt.bodySmall?.copyWith(color: context.kInkSubtle)),
       ],
     );
   }
@@ -514,15 +565,17 @@ class _StepLastPeriod extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const SizedBox(height: 24),
-        Text('Last period start', style: tt.displaySmall),
+        Text('Last period start',
+            style: tt.displaySmall?.copyWith(color: context.kInk)),
         const SizedBox(height: 8),
         Text(
           'This helps estimate your current phase. It\'s optional — you can add it later.',
-          style: tt.bodyMedium?.copyWith(color: KholoColors.inkMuted),
+          style: tt.bodyMedium?.copyWith(color: context.kInkMuted),
         ),
         const SizedBox(height: 32),
         GestureDetector(
           onTap: () async {
+            HapticFeedback.mediumImpact();
             final picked = await showDatePicker(
               context: context,
               initialDate: lastPeriodDate ?? DateTime.now(),
@@ -534,22 +587,33 @@ class _StepLastPeriod extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: KholoColors.cream,
+              color: context.kCard,
               borderRadius: BorderRadius.circular(20),
               border: Border.all(
                 color: lastPeriodDate != null
-                    ? KholoColors.lavender
-                    : KholoColors.divider,
+                    ? (context.isDark
+                        ? KholoColors.magenta
+                        : KholoColors.plum)
+                    : context.kDivider,
                 width: lastPeriodDate != null ? 2 : 1,
               ),
+              boxShadow: [
+                BoxShadow(
+                  color: KholoColors.wine
+                      .withValues(alpha: context.isDark ? 0.2 : 0.04),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ],
             ),
             child: Row(
               children: [
                 Container(
                   width: 48,
                   height: 48,
-                  decoration: const BoxDecoration(
-                    color: KholoColors.roseLight,
+                  decoration: BoxDecoration(
+                    color: KholoColors.roseLight
+                        .withValues(alpha: context.isDark ? 0.2 : 1.0),
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(Icons.water_drop_rounded,
@@ -560,7 +624,9 @@ class _StepLastPeriod extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('First day of last period', style: tt.titleMedium),
+                      Text('First day of last period',
+                          style:
+                              tt.titleMedium?.copyWith(color: context.kInk)),
                       const SizedBox(height: 4),
                       Text(
                         lastPeriodDate != null
@@ -568,8 +634,10 @@ class _StepLastPeriod extends StatelessWidget {
                             : 'Tap to choose date',
                         style: tt.bodyMedium?.copyWith(
                             color: lastPeriodDate != null
-                                ? KholoColors.plum
-                                : KholoColors.inkSubtle),
+                                ? (context.isDark
+                                    ? KholoColors.blush
+                                    : KholoColors.plum)
+                                : context.kInkSubtle),
                       ),
                     ],
                   ),
@@ -579,8 +647,10 @@ class _StepLastPeriod extends StatelessWidget {
                       ? Icons.check_circle_rounded
                       : Icons.calendar_today_outlined,
                   color: lastPeriodDate != null
-                      ? KholoColors.plum
-                      : KholoColors.inkSubtle,
+                      ? (context.isDark
+                          ? KholoColors.magenta
+                          : KholoColors.plum)
+                      : context.kInkSubtle,
                 ),
               ],
             ),
@@ -589,15 +659,22 @@ class _StepLastPeriod extends StatelessWidget {
         const SizedBox(height: 16),
         TextButton.icon(
           onPressed: () {},
-          icon: const Icon(Icons.info_outline, size: 16),
-          label: const Text('Why do we ask?'),
+          icon: Icon(Icons.info_outline,
+              size: 16,
+              color: context.isDark ? KholoColors.magenta : KholoColors.wine),
+          label: Text(
+            'Why do we ask?',
+            style: TextStyle(
+                color: context.isDark ? KholoColors.magenta : KholoColors.wine),
+          ),
         ),
         const SizedBox(height: 8),
         Padding(
           padding: const EdgeInsets.only(left: 8),
           child: Text(
             'Your last period date lets us estimate your current cycle phase and fertile window. This field is optional.',
-            style: tt.bodySmall?.copyWith(color: KholoColors.inkSubtle, height: 1.5),
+            style:
+                tt.bodySmall?.copyWith(color: context.kInkSubtle, height: 1.5),
           ),
         ),
       ],
@@ -637,14 +714,16 @@ class _StepAgeAndStage extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const SizedBox(height: 24),
-        Text('About you', style: tt.displaySmall),
+        Text('About you',
+            style: tt.displaySmall?.copyWith(color: context.kInk)),
         const SizedBox(height: 8),
         Text(
           'Optional details to personalise your experience.',
-          style: tt.bodyMedium?.copyWith(color: KholoColors.inkMuted),
+          style: tt.bodyMedium?.copyWith(color: context.kInkMuted),
         ),
         const SizedBox(height: 32),
-        Text('Age range', style: tt.titleMedium),
+        Text('Age range',
+            style: tt.titleMedium?.copyWith(color: context.kInk)),
         const SizedBox(height: 12),
         Wrap(
           spacing: 8,
@@ -654,27 +733,37 @@ class _StepAgeAndStage extends StatelessWidget {
             return ChoiceChip(
               label: Text(a),
               selected: selected,
-              onSelected: (_) => onAgeChanged(a),
-              selectedColor: KholoColors.plum,
+              onSelected: (_) {
+                HapticFeedback.selectionClick();
+                onAgeChanged(a);
+              },
+              selectedColor:
+                  context.isDark ? KholoColors.magenta : KholoColors.plum,
               labelStyle: TextStyle(
-                  color: selected ? Colors.white : KholoColors.ink,
-                  fontWeight: FontWeight.w500),
-              backgroundColor: KholoColors.lavenderLight,
+                  color: selected ? Colors.white : context.kInk,
+                  fontWeight: FontWeight.w600),
+              backgroundColor: context.isDark
+                  ? context.kCardElevated
+                  : KholoColors.lavenderLight,
             );
           }).toList(),
         ),
         const SizedBox(height: 28),
-        Text('Where are you right now?', style: tt.titleMedium),
+        Text('Where are you right now?',
+            style: tt.titleMedium?.copyWith(color: context.kInk)),
         const SizedBox(height: 4),
         Text(
           'You can change this at any time in your profile.',
-          style: tt.bodySmall?.copyWith(color: KholoColors.inkMuted),
+          style: tt.bodySmall?.copyWith(color: context.kInkMuted),
         ),
         const SizedBox(height: 12),
         ...LifeStage.values.map((s) => _StageCard(
               stage: s,
               isSelected: lifeStage == s,
-              onTap: () => onStageChanged(s),
+              onTap: () {
+                HapticFeedback.selectionClick();
+                onStageChanged(s);
+              },
             )),
       ],
     );
@@ -702,6 +791,8 @@ class _StageCard extends StatelessWidget {
         return Icons.child_friendly_outlined;
       case LifeStage.postpartum:
         return Icons.child_care_outlined;
+      case LifeStage.wellnessAndSkincare:
+        return Icons.spa_outlined;
     }
   }
 
@@ -711,30 +802,60 @@ class _StageCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 160),
+        duration: const Duration(milliseconds: 180),
         margin: const EdgeInsets.only(bottom: 10),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
-          color: isSelected ? KholoColors.lavenderLight : KholoColors.cream,
+          color: isSelected
+              ? (context.isDark
+                  ? context.kCardElevated
+                  : KholoColors.lavenderLight)
+              : context.kCard,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isSelected ? KholoColors.plum : KholoColors.divider,
+            color: isSelected
+                ? (context.isDark
+                    ? KholoColors.magenta
+                    : KholoColors.plum)
+                : context.kDivider,
             width: isSelected ? 2 : 1,
           ),
+          boxShadow: [
+            BoxShadow(
+              color: KholoColors.wine
+                  .withValues(alpha: context.isDark ? 0.2 : 0.03),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
         child: Row(
           children: [
-            Icon(_icon(stage),
-                color: isSelected ? KholoColors.plum : KholoColors.inkMuted,
-                size: 22),
+            Icon(
+              _icon(stage),
+              color: isSelected
+                  ? (context.isDark
+                      ? KholoColors.magenta
+                      : KholoColors.plum)
+                  : context.kInkMuted,
+              size: 22,
+            ),
             const SizedBox(width: 14),
             Expanded(
-              child: Text(stage.displayName,
-                  style: tt.bodyMedium?.copyWith(
-                      fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400)),
+              child: Text(
+                stage.displayName,
+                style: tt.bodyMedium?.copyWith(
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                  color: context.kInk,
+                ),
+              ),
             ),
             if (isSelected)
-              const Icon(Icons.check_rounded, color: KholoColors.plum, size: 18),
+              Icon(Icons.check_rounded,
+                  color: context.isDark
+                      ? KholoColors.magenta
+                      : KholoColors.plum,
+                  size: 18),
           ],
         ),
       ),
@@ -766,11 +887,12 @@ class _StepReviewAndConsent extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const SizedBox(height: 24),
-        Text('Review your details', style: tt.displaySmall),
+        Text('Review your details',
+            style: tt.displaySmall?.copyWith(color: context.kInk)),
         const SizedBox(height: 8),
         Text(
           'Saving this will personalise your dashboard. You can edit everything in Profile.',
-          style: tt.bodyMedium?.copyWith(color: KholoColors.inkMuted),
+          style: tt.bodyMedium?.copyWith(color: context.kInkMuted),
         ),
         const SizedBox(height: 28),
         _ReviewRow('Cycle length', '$cycleLength days'),
@@ -785,24 +907,39 @@ class _StepReviewAndConsent extends StatelessWidget {
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: KholoColors.lavenderLight,
+            color: context.isDark
+                ? context.kCardElevated
+                : KholoColors.lavenderLight,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: KholoColors.lavender.withValues(alpha: 0.4)),
+            border: Border.all(
+                color: (context.isDark
+                        ? KholoColors.magenta
+                        : KholoColors.lavender)
+                    .withValues(alpha: 0.3)),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 children: [
-                  const Icon(Icons.shield_outlined, color: KholoColors.plum, size: 18),
+                  Icon(Icons.shield_outlined,
+                      color: context.isDark
+                          ? KholoColors.magenta
+                          : KholoColors.plum,
+                      size: 18),
                   const SizedBox(width: 8),
-                  Text('Privacy note', style: tt.titleMedium?.copyWith(color: KholoColors.plum)),
+                  Text('Privacy note',
+                      style: tt.titleMedium?.copyWith(
+                          color: context.isDark
+                              ? KholoColors.blush
+                              : KholoColors.plum)),
                 ],
               ),
               const SizedBox(height: 8),
               Text(
                 'Your health data is stored privately on your device. KHOLO does not share it with third parties, advertisers, or payment processors.\n\nAll cycle and fertility estimates are based on your inputs and should not be treated as medical advice. For health concerns, please consult a qualified clinician.',
-                style: tt.bodySmall?.copyWith(color: KholoColors.inkMuted, height: 1.55),
+                style: tt.bodySmall
+                    ?.copyWith(color: context.kInkMuted, height: 1.55),
               ),
             ],
           ),
@@ -830,14 +967,17 @@ class _ReviewRow extends StatelessWidget {
     final tt = Theme.of(context).textTheme;
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 12),
-      decoration: const BoxDecoration(
-        border: Border(bottom: BorderSide(color: KholoColors.divider)),
+      decoration: BoxDecoration(
+        border: Border(bottom: BorderSide(color: context.kDivider)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: tt.bodyMedium?.copyWith(color: KholoColors.inkMuted)),
-          Text(value, style: tt.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
+          Text(label,
+              style: tt.bodyMedium?.copyWith(color: context.kInkMuted)),
+          Text(value,
+              style: tt.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w600, color: context.kInk)),
         ],
       ),
     );

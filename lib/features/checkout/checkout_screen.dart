@@ -1,13 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../app/theme/colors.dart';
 import '../../core/models/product.dart';
 import '../../core/providers/providers.dart';
 import '../../shared/widgets/kholo_animated_loader.dart';
 
-/// Order review and checkout screen.
-/// Payment UI is Stripe-ready but inactive until server keys are configured.
+/// ─── LUXURY ORDER REVIEW & CHECKOUT EXPERIENCE ────────────────────────────
+///
+/// Features:
+/// 1. Transparent order line review with Bangladesh delivery calculations.
+/// 2. Delivery contact details (Name, Mobile phone with +880 prefix).
+/// 3. Bangladesh administrative division & upazila address selector.
+/// 4. Payment selection (Cash on delivery active, bKash & Card ready).
+/// 5. Full Light & Dark theme tokens with haptic confirmation.
+/// ────────────────────────────────────────────────────────────────────────────
 class CheckoutScreen extends ConsumerStatefulWidget {
   const CheckoutScreen({super.key});
 
@@ -25,8 +34,14 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   bool _orderPlaced = false;
 
   static const _divisions = [
-    'Barisal', 'Chittagong', 'Dhaka', 'Khulna',
-    'Mymensingh', 'Rajshahi', 'Rangpur', 'Sylhet',
+    'Barisal',
+    'Chittagong',
+    'Dhaka',
+    'Khulna',
+    'Mymensingh',
+    'Rajshahi',
+    'Rangpur',
+    'Sylhet',
   ];
 
   @override
@@ -53,7 +68,8 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     double subtotal = 0;
     final lineItems = <_CartLine>[];
     for (final item in items) {
-      final products = kSampleProducts.where((p) => p.id == item.productId).toList();
+      final products =
+          kSampleProducts.where((p) => p.id == item.productId).toList();
       if (products.isNotEmpty) {
         final p = products.first;
         subtotal += p.priceBdt * item.quantity;
@@ -64,12 +80,21 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     final total = subtotal + deliveryFee;
 
     return Scaffold(
-      backgroundColor: KholoColors.canvas,
+      backgroundColor: context.kCanvas,
       appBar: AppBar(
-        title: const Text('Checkout'),
+        title: Text(
+          'Checkout',
+          style: GoogleFonts.playfairDisplay(
+            fontWeight: FontWeight.w700,
+            color: context.kInk,
+          ),
+        ),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded),
-          onPressed: () => context.go('/cart'),
+          icon: Icon(Icons.arrow_back_rounded, color: context.kInk),
+          onPressed: () {
+            HapticFeedback.selectionClick();
+            context.go('/cart');
+          },
         ),
       ),
       body: ListView(
@@ -81,9 +106,17 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: KholoColors.cream,
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: KholoColors.divider),
+              color: context.kCard,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: context.kDivider),
+              boxShadow: [
+                BoxShadow(
+                  color: KholoColors.wine
+                      .withValues(alpha: context.isDark ? 0.2 : 0.03),
+                  blurRadius: 10,
+                  offset: const Offset(0, 3),
+                ),
+              ],
             ),
             child: Column(
               children: [
@@ -95,30 +128,42 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                             width: 40,
                             height: 40,
                             decoration: BoxDecoration(
-                              color: KholoColors.lavenderLight,
+                              color: context.isDark
+                                  ? context.kCardElevated
+                                  : KholoColors.lavenderLight,
                               borderRadius: BorderRadius.circular(10),
                             ),
-                            child: const Icon(Icons.spa_outlined,
-                                color: KholoColors.wine, size: 20),
+                            child: Icon(
+                              Icons.spa_outlined,
+                              color: context.isDark
+                                  ? KholoColors.magenta
+                                  : KholoColors.wine,
+                              size: 20,
+                            ),
                           ),
                           const SizedBox(width: 10),
                           Expanded(
-                            child: Text(li.product.title,
-                                style: tt.bodyMedium,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis),
+                            child: Text(
+                              li.product.title,
+                              style: tt.bodyMedium
+                                  ?.copyWith(color: context.kInk),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ),
                           Text(
-                              '${li.quantity}× ৳${(li.product.priceBdt * li.quantity).toStringAsFixed(0)}',
-                              style: tt.bodyMedium?.copyWith(color: KholoColors.inkMuted)),
+                            '${li.quantity}× ৳${(li.product.priceBdt * li.quantity).toStringAsFixed(0)}',
+                            style: tt.bodyMedium
+                                ?.copyWith(color: context.kInkMuted),
+                          ),
                         ],
                       ),
                     )),
-                const Divider(height: 20),
+                Divider(height: 20, color: context.kDivider),
                 _TotalRow('Subtotal', '৳${subtotal.toStringAsFixed(0)}', false),
                 const SizedBox(height: 6),
                 _TotalRow('Home delivery', '৳${deliveryFee.toInt()}', false),
-                const Divider(height: 16),
+                Divider(height: 16, color: context.kDivider),
                 _TotalRow('Total', '৳${total.toStringAsFixed(0)}', true),
               ],
             ),
@@ -131,9 +176,13 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
           const SizedBox(height: 12),
           TextField(
             controller: _nameCtrl,
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               labelText: 'Full name *',
-              prefixIcon: Icon(Icons.person_outline_rounded, color: KholoColors.inkSubtle),
+              labelStyle: TextStyle(color: context.kInkMuted),
+              filled: true,
+              fillColor: context.kCard,
+              prefixIcon:
+                  Icon(Icons.person_outline_rounded, color: context.kInkSubtle),
             ),
             textCapitalization: TextCapitalization.words,
           ),
@@ -141,11 +190,16 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
           TextField(
             controller: _phoneCtrl,
             keyboardType: TextInputType.phone,
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               labelText: 'Mobile number *',
+              labelStyle: TextStyle(color: context.kInkMuted),
+              filled: true,
+              fillColor: context.kCard,
               prefixText: '+880 ',
-              prefixIcon: Icon(Icons.phone_outlined, color: KholoColors.inkSubtle),
-              helperText: 'Used for delivery updates only',
+              prefixIcon:
+                  Icon(Icons.phone_outlined, color: context.kInkSubtle),
+              helperText: 'Used for delivery verification only',
+              helperStyle: TextStyle(color: context.kInkSubtle),
             ),
           ),
 
@@ -157,38 +211,54 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
           Container(
             padding: const EdgeInsets.all(4),
             decoration: BoxDecoration(
-              color: KholoColors.cream,
+              color: context.kCard,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: KholoColors.divider),
+              border: Border.all(color: context.kDivider),
             ),
             child: DropdownButtonFormField<String>(
               initialValue: _division,
+              dropdownColor: context.kCard,
               decoration: const InputDecoration(
                 labelText: 'Division',
                 border: InputBorder.none,
-                contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                contentPadding:
+                    EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               ),
               items: _divisions
-                  .map((d) => DropdownMenuItem(value: d, child: Text(d)))
+                  .map((d) => DropdownMenuItem(
+                      value: d,
+                      child: Text(d,
+                          style: TextStyle(color: context.kInk))))
                   .toList(),
-              onChanged: (v) => setState(() => _division = v!),
+              onChanged: (v) {
+                HapticFeedback.selectionClick();
+                setState(() => _division = v!);
+              },
             ),
           ),
           const SizedBox(height: 12),
           TextField(
             controller: _cityCtrl,
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               labelText: 'City / Upazila',
-              prefixIcon: Icon(Icons.location_city_outlined, color: KholoColors.inkSubtle),
+              labelStyle: TextStyle(color: context.kInkMuted),
+              filled: true,
+              fillColor: context.kCard,
+              prefixIcon: Icon(Icons.location_city_outlined,
+                  color: context.kInkSubtle),
             ),
           ),
           const SizedBox(height: 12),
           TextField(
             controller: _addressCtrl,
             maxLines: 2,
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               labelText: 'Area, road & house *',
-              prefixIcon: Icon(Icons.home_outlined, color: KholoColors.inkSubtle),
+              labelStyle: TextStyle(color: context.kInkMuted),
+              filled: true,
+              fillColor: context.kCard,
+              prefixIcon:
+                  Icon(Icons.home_outlined, color: context.kInkSubtle),
             ),
           ),
 
@@ -199,7 +269,10 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
           const SizedBox(height: 12),
           _PaymentSelector(
             selected: _paymentMethod,
-            onSelect: (m) => setState(() => _paymentMethod = m),
+            onSelect: (m) {
+              HapticFeedback.selectionClick();
+              setState(() => _paymentMethod = m);
+            },
           ),
 
           const SizedBox(height: 16),
@@ -208,20 +281,31 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
           Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: KholoColors.lavenderLight,
+              color: context.isDark
+                  ? context.kCardElevated
+                  : KholoColors.lavenderLight,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: KholoColors.lavender.withValues(alpha: 0.4)),
+              border: Border.all(
+                color: (context.isDark
+                        ? KholoColors.magenta
+                        : KholoColors.lavender)
+                    .withValues(alpha: 0.3),
+              ),
             ),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Icon(Icons.info_outline_rounded,
-                    color: KholoColors.wine, size: 16),
+                Icon(Icons.info_outline_rounded,
+                    color: context.isDark
+                        ? KholoColors.magenta
+                        : KholoColors.wine,
+                    size: 16),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     'Card and mobile wallet payment will be activated once secure server-side payment credentials are configured. All pricing is validated server-side before payment.',
-                    style: tt.bodySmall?.copyWith(color: KholoColors.inkMuted, height: 1.5),
+                    style: tt.bodySmall
+                        ?.copyWith(color: context.kInkMuted, height: 1.5),
                   ),
                 ),
               ],
@@ -234,12 +318,14 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
           Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: KholoColors.cream,
+              color: context.kCard,
               borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: context.kDivider),
             ),
             child: Text(
               'By placing this order you agree to KHOLO\'s delivery policy, return conditions, and privacy notice. Your health data is never included in order records.',
-              style: tt.bodySmall?.copyWith(color: KholoColors.inkSubtle, height: 1.5),
+              style: tt.bodySmall
+                  ?.copyWith(color: context.kInkSubtle, height: 1.5),
             ),
           ),
         ],
@@ -248,14 +334,23 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       bottomNavigationBar: Container(
         padding: EdgeInsets.fromLTRB(
             20, 12, 20, MediaQuery.of(context).padding.bottom + 12),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          border: Border(top: BorderSide(color: KholoColors.divider)),
+        decoration: BoxDecoration(
+          color: context.kCard,
+          border: Border(top: BorderSide(color: context.kDivider)),
         ),
         child: SizedBox(
           width: double.infinity,
           child: ElevatedButton(
-            onPressed: (_paymentMethod == 'cod' && items.isNotEmpty) ? _placeOrder : null,
+            onPressed: (_paymentMethod == 'cod' && items.isNotEmpty)
+                ? _placeOrder
+                : null,
+            style: ElevatedButton.styleFrom(
+              backgroundColor:
+                  context.isDark ? KholoColors.magenta : KholoColors.wine,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16)),
+            ),
             child: _paymentMethod == 'cod'
                 ? Text('Place order · ৳${total.toStringAsFixed(0)}')
                 : const Text('Payment coming soon'),
@@ -290,6 +385,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       return;
     }
 
+    HapticFeedback.heavyImpact();
     KholoAnimatedLoader.show(context, message: 'Confirming your order...');
     Future.delayed(const Duration(milliseconds: 900), () {
       if (mounted) {
@@ -314,7 +410,8 @@ class _SectionTitle extends StatelessWidget {
         text.toUpperCase(),
         style: Theme.of(context).textTheme.labelSmall?.copyWith(
               letterSpacing: 1.2,
-              color: KholoColors.inkSubtle,
+              color: context.kInkSubtle,
+              fontWeight: FontWeight.w700,
             ),
       );
 }
@@ -331,14 +428,24 @@ class _TotalRow extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(label,
-            style: isTotal
-                ? tt.titleMedium
-                : tt.bodyMedium?.copyWith(color: KholoColors.inkMuted)),
-        Text(value,
-            style: isTotal
-                ? tt.titleMedium?.copyWith(color: KholoColors.plum)
-                : tt.bodyMedium),
+        Text(
+          label,
+          style: isTotal
+              ? tt.titleMedium?.copyWith(color: context.kInk)
+              : tt.bodyMedium?.copyWith(color: context.kInkMuted),
+        ),
+        Text(
+          value,
+          style: isTotal
+              ? GoogleFonts.inter(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                  color: context.isDark
+                      ? KholoColors.magenta
+                      : KholoColors.plum,
+                )
+              : tt.bodyMedium?.copyWith(color: context.kInk),
+        ),
       ],
     );
   }
@@ -350,12 +457,24 @@ class _PaymentSelector extends StatelessWidget {
   final ValueChanged<String> onSelect;
 
   static const _methods = [
-    ('cod', 'Cash on delivery', Icons.payments_outlined,
-        'Pay cash when your order arrives.'),
-    ('bkash', 'bKash / Nagad', Icons.phone_android_outlined,
-        'Coming soon — pending merchant approval.'),
-    ('card', 'Card payment', Icons.credit_card_outlined,
-        'Coming soon — Stripe integration pending credentials.'),
+    (
+      'cod',
+      'Cash on delivery',
+      Icons.payments_outlined,
+      'Pay cash when your order arrives.'
+    ),
+    (
+      'bkash',
+      'bKash / Nagad',
+      Icons.phone_android_outlined,
+      'Coming soon — pending merchant approval.'
+    ),
+    (
+      'card',
+      'Card payment',
+      Icons.credit_card_outlined,
+      'Coming soon — Stripe integration pending credentials.'
+    ),
   ];
 
   @override
@@ -373,22 +492,42 @@ class _PaymentSelector extends StatelessWidget {
             margin: const EdgeInsets.only(bottom: 10),
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: isSelected ? KholoColors.lavenderLight : KholoColors.cream,
+              color: isSelected
+                  ? (context.isDark
+                      ? context.kCardElevated
+                      : KholoColors.lavenderLight)
+                  : context.kCard,
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                color: isSelected ? KholoColors.plum : KholoColors.divider,
+                color: isSelected
+                    ? (context.isDark
+                        ? KholoColors.magenta
+                        : KholoColors.plum)
+                    : context.kDivider,
                 width: isSelected ? 2 : 1,
               ),
+              boxShadow: [
+                BoxShadow(
+                  color: KholoColors.wine
+                      .withValues(alpha: context.isDark ? 0.2 : 0.03),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
             ),
             child: Row(
               children: [
-                Icon(m.$3,
-                    color: isDisabled
-                        ? KholoColors.inkSubtle
-                        : isSelected
-                            ? KholoColors.plum
-                            : KholoColors.inkMuted,
-                    size: 22),
+                Icon(
+                  m.$3,
+                  color: isDisabled
+                      ? context.kInkSubtle
+                      : isSelected
+                          ? (context.isDark
+                              ? KholoColors.magenta
+                              : KholoColors.plum)
+                          : context.kInkMuted,
+                  size: 22,
+                ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
@@ -398,22 +537,26 @@ class _PaymentSelector extends StatelessWidget {
                         m.$2,
                         style: tt.bodyMedium?.copyWith(
                           color: isDisabled
-                              ? KholoColors.inkSubtle
-                              : KholoColors.ink,
-                          fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                              ? context.kInkSubtle
+                              : context.kInk,
+                          fontWeight:
+                              isSelected ? FontWeight.w600 : FontWeight.w400,
                         ),
                       ),
                       Text(
                         m.$4,
-                        style: tt.bodySmall
-                            ?.copyWith(color: KholoColors.inkSubtle, height: 1.3),
+                        style: tt.bodySmall?.copyWith(
+                            color: context.kInkSubtle, height: 1.3),
                       ),
                     ],
                   ),
                 ),
                 if (isSelected)
-                  const Icon(Icons.check_rounded,
-                      color: KholoColors.plum, size: 18),
+                  Icon(Icons.check_rounded,
+                      color: context.isDark
+                          ? KholoColors.magenta
+                          : KholoColors.plum,
+                      size: 18),
               ],
             ),
           ),
@@ -429,9 +572,8 @@ class _OrderSuccessScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tt = Theme.of(context).textTheme;
     return Scaffold(
-      backgroundColor: KholoColors.canvas,
+      backgroundColor: context.kCanvas,
       body: SafeArea(
         child: Center(
           child: Padding(
@@ -442,24 +584,47 @@ class _OrderSuccessScreen extends StatelessWidget {
                 Container(
                   width: 96,
                   height: 96,
-                  decoration: const BoxDecoration(
-                    color: KholoColors.sageLight,
+                  decoration: BoxDecoration(
+                    color: KholoColors.sageLight
+                        .withValues(alpha: context.isDark ? 0.3 : 1.0),
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(Icons.check_rounded,
                       color: KholoColors.sageDark, size: 52),
                 ),
                 const SizedBox(height: 28),
-                Text('Order placed!', style: tt.displaySmall, textAlign: TextAlign.center),
+                Text(
+                  'Order placed!',
+                  style: GoogleFonts.playfairDisplay(
+                    fontSize: 28,
+                    fontWeight: FontWeight.w700,
+                    color: context.kInk,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
                 const SizedBox(height: 12),
                 Text(
                   'Your cash-on-delivery order has been received. You\'ll receive delivery details via your provided mobile number.',
-                  style: tt.bodyMedium?.copyWith(color: KholoColors.inkMuted, height: 1.6),
+                  style: TextStyle(
+                    color: context.kInkMuted,
+                    height: 1.6,
+                    fontSize: 14,
+                  ),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 32),
                 ElevatedButton(
                   onPressed: onContinue,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: context.isDark
+                        ? KholoColors.magenta
+                        : KholoColors.wine,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 32, vertical: 16),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20)),
+                  ),
                   child: const Text('Continue shopping'),
                 ),
               ],

@@ -16,12 +16,14 @@ import '../../core/utils/cycle_engine.dart';
 import '../../shared/widgets/phase_card.dart';
 import '../../shared/widgets/log_bottom_sheet.dart';
 import '../../shared/widgets/update_banner.dart';
-import '../../shared/widgets/update_dialog.dart';
+import '../../shared/widgets/brand_emotional_avatar.dart';
+import '../../core/services/brand_emotional_state_service.dart';
 import 'widgets/animated_cycle_ring.dart';
 import 'widgets/liquid_flow_animation.dart';
 import 'widgets/daily_hormonal_insight_card.dart';
 
 /// Today dashboard — award-winning redesign with:
+/// • Dynamic brand emotional connection & breathing avatar
 /// • OTA update banner
 /// • Gradient greeting hero
 /// • Premium action tiles with scale animation
@@ -38,6 +40,7 @@ class _TodayScreenState extends ConsumerState<TodayScreen>
     with WidgetsBindingObserver {
   AppUpdate? _pendingUpdate;
   int _currentVersionCode = 1;
+  BrandEmotionalState _brandState = BrandEmotionalState.active;
 
   @override
   void initState() {
@@ -45,6 +48,14 @@ class _TodayScreenState extends ConsumerState<TodayScreen>
     WidgetsBinding.instance.addObserver(this);
     NotificationService.requestPermission();
     _checkForUpdate();
+    _initBrandState();
+  }
+
+  Future<void> _initBrandState() async {
+    final state = await BrandEmotionalStateService.recordAppOpen();
+    if (mounted) {
+      setState(() => _brandState = state);
+    }
   }
 
   @override
@@ -62,34 +73,48 @@ class _TodayScreenState extends ConsumerState<TodayScreen>
 
   Future<void> _checkForUpdate({bool showNotification = true}) async {
     final currentCode = await UpdateService.currentVersionCode();
+    final currentName = await UpdateService.currentVersionName();
     final update = await UpdateService.checkForUpdate();
     if (mounted) {
-      if (update != null) {
-        final prefs = await SharedPreferences.getInstance();
-        final dismissedCode = prefs.getInt('kholo_dismissed_update_code') ?? 0;
+      if (update != null && update.isNewerThan(currentCode, currentName)) {
         final isMandatory = update.isMandatory(currentCode);
-        final shouldShowBanner = isMandatory || (update.versionCode > dismissedCode);
 
-        setState(() {
-          _currentVersionCode = currentCode;
-          _pendingUpdate = shouldShowBanner ? update : null;
-        });
-
+        // Smart one-time notification deduplication
         if (showNotification) {
-          // Show system status bar notification once per new version release
-          await NotificationService.showUpdateNotification(
-            version: update.latestVersion,
-            versionCode: update.versionCode,
-            releaseNotes: update.releaseNotes,
+          final shouldNotify =
+              await UpdateService.shouldShowUpdateNotification(
+            update.versionCode,
+            remoteVersionName: update.latestVersion,
           );
+          if (shouldNotify) {
+            await NotificationService.showUpdateNotification(
+              version: update.latestVersion,
+              versionCode: update.versionCode,
+              releaseNotes: update.releaseNotes,
+              force: false,
+            );
+            await UpdateService.recordNotificationSent(update.versionCode);
+          }
         }
 
-        // If mandatory, automatically trigger dialog
         if (isMandatory) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (mounted) {
-              UpdateDialog.show(context, update, currentVersionCode: currentCode);
+              context.go('/update', extra: {
+                'update': update,
+                'currentVersionCode': currentCode,
+                'currentVersionName': currentName,
+              });
             }
+          });
+        } else {
+          final prefs = await SharedPreferences.getInstance();
+          final dismissedCode = prefs.getInt('kholo_dismissed_update_code') ?? 0;
+          setState(() {
+            _currentVersionCode = currentCode;
+            // Only show banner if user hasn't explicitly dismissed this release
+            _pendingUpdate =
+                (dismissedCode == update.versionCode) ? null : update;
           });
         }
       } else {
@@ -97,6 +122,7 @@ class _TodayScreenState extends ConsumerState<TodayScreen>
           _currentVersionCode = currentCode;
           _pendingUpdate = null;
         });
+        await NotificationService.cancelUpdateNotification();
       }
     }
   }
@@ -121,22 +147,22 @@ class _TodayScreenState extends ConsumerState<TodayScreen>
     final latestLog = logs.isNotEmpty ? logs.first : null;
 
     return Scaffold(
-      backgroundColor: KholoColors.canvas,
+      backgroundColor: context.kCanvas,
       appBar: AppBar(
-        backgroundColor: KholoColors.canvas,
+        backgroundColor: context.kCanvas,
         elevation: 0,
         title: Text(
           'KHOLO',
           style: GoogleFonts.playfairDisplay(
             fontSize: 22,
             fontWeight: FontWeight.w700,
-            color: KholoColors.ink,
+            color: context.kInk,
             letterSpacing: 1,
           ),
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.notifications_none_rounded),
+            icon: Icon(Icons.notifications_none_rounded, color: context.kInk),
             onPressed: () {},
             tooltip: 'Notifications',
           ),
@@ -180,7 +206,11 @@ class _TodayScreenState extends ConsumerState<TodayScreen>
               ),
 
             // ── Greeting Hero ─────────────────────────────────────────────
-            _GreetingHero(greeting: greeting, profile: profile),
+            _GreetingHero(
+              greeting: greeting,
+              profile: profile,
+              brandState: _brandState,
+            ),
             const SizedBox(height: 16),
 
             // ── AI Skin Doctor Scanner Entry ──────────────────────────────
@@ -256,14 +286,14 @@ class _TodayScreenState extends ConsumerState<TodayScreen>
             Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: KholoColors.cream,
+                color: context.kCard,
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: KholoColors.divider),
+                border: Border.all(color: context.kDivider),
               ),
               child: Text(
                 'Phase estimates are based on your logged data and are not medical advice. Contact a qualified clinician for health concerns.',
                 style: tt.bodySmall
-                    ?.copyWith(color: KholoColors.inkSubtle, height: 1.5),
+                    ?.copyWith(color: context.kInkSubtle, height: 1.5),
                 textAlign: TextAlign.center,
               ),
             ),
@@ -295,9 +325,15 @@ class _TodayScreenState extends ConsumerState<TodayScreen>
 // ── Greeting Hero ─────────────────────────────────────────────────────────────
 
 class _GreetingHero extends StatelessWidget {
-  const _GreetingHero({required this.greeting, required this.profile});
+  const _GreetingHero({
+    required this.greeting,
+    required this.profile,
+    required this.brandState,
+  });
+
   final String greeting;
   final HealthProfile profile;
+  final BrandEmotionalState brandState;
 
   @override
   Widget build(BuildContext context) {
@@ -327,6 +363,12 @@ class _GreetingHero extends StatelessWidget {
       ),
       child: Row(
         children: [
+          // Dynamic Emotional Avatar
+          BrandEmotionalAvatar(
+            size: 48,
+            state: brandState,
+          ),
+          const SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -337,10 +379,10 @@ class _GreetingHero extends StatelessWidget {
                     color: Colors.white.withValues(alpha: 0.85),
                   ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 2),
                 Text(
-                  'Here\'s your overview',
-                  style: tt.headlineMedium?.copyWith(
+                  brandState.title,
+                  style: tt.headlineSmall?.copyWith(
                     color: Colors.white,
                     fontWeight: FontWeight.w700,
                     height: 1.2,
@@ -425,7 +467,7 @@ class _PremiumSectionHeader extends StatelessWidget {
           style: tt.labelMedium?.copyWith(
             fontWeight: FontWeight.w800,
             letterSpacing: 1.2,
-            color: KholoColors.ink,
+            color: context.kInk,
           ),
         ),
       ],
@@ -444,14 +486,16 @@ class _MenstrualFlowCard extends StatelessWidget {
     final tt = Theme.of(context).textTheme;
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.kCard,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: KholoColors.divider),
-        boxShadow: const [
+        border: Border.all(color: context.kDivider),
+        boxShadow: [
           BoxShadow(
-            color: Color(0x0F92003A),
+            color: context.isDark
+                ? Colors.black.withValues(alpha: 0.3)
+                : const Color(0x0F92003A),
             blurRadius: 16,
-            offset: Offset(0, 4),
+            offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -470,7 +514,7 @@ class _MenstrualFlowCard extends StatelessWidget {
                   Text(
                     'Active Menstrual Flow',
                     style: tt.titleSmall?.copyWith(
-                      color: KholoColors.wine,
+                      color: context.isDark ? KholoColors.blush : KholoColors.wine,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
@@ -918,12 +962,14 @@ class _RecentProducts extends StatelessWidget {
               width: 156,
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: KholoColors.cream,
+                color: context.kCard,
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: KholoColors.divider),
+                border: Border.all(color: context.kDivider),
                 boxShadow: [
                   BoxShadow(
-                    color: KholoColors.wine.withValues(alpha: 0.05),
+                    color: context.isDark
+                        ? Colors.black.withValues(alpha: 0.3)
+                        : KholoColors.wine.withValues(alpha: 0.05),
                     blurRadius: 10,
                     offset: const Offset(0, 3),
                   ),
@@ -936,43 +982,62 @@ class _RecentProducts extends StatelessWidget {
                     width: 44,
                     height: 44,
                     decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [KholoColors.lavenderLight, KholoColors.blush],
+                      gradient: LinearGradient(
+                        colors: context.isDark
+                            ? [
+                                KholoColors.magenta.withValues(alpha: 0.25),
+                                KholoColors.wine.withValues(alpha: 0.25),
+                              ]
+                            : [
+                                KholoColors.lavenderLight,
+                                KholoColors.blush,
+                              ],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                       ),
                       borderRadius: BorderRadius.circular(14),
                     ),
-                    child: const Icon(Icons.spa_outlined,
-                        color: KholoColors.plum, size: 22),
+                    child: Icon(Icons.spa_outlined,
+                        color: context.isDark
+                            ? KholoColors.magenta
+                            : KholoColors.plum,
+                        size: 22),
                   ),
                   const Spacer(),
                   Container(
                     padding: const EdgeInsets.symmetric(
                         horizontal: 7, vertical: 3),
                     decoration: BoxDecoration(
-                      color: KholoColors.lavenderLight,
+                      color: context.kTint(KholoColors.magenta,
+                          lightAlpha: 0.12, darkAlpha: 0.25),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
                       p.category,
-                      style: const TextStyle(
+                      style: TextStyle(
                           fontSize: 8,
-                          color: KholoColors.plum,
+                          color: context.isDark
+                              ? KholoColors.blush
+                              : KholoColors.plum,
                           fontWeight: FontWeight.w700),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
                   const SizedBox(height: 5),
                   Text(p.title,
-                      style: Theme.of(ctx).textTheme.titleSmall,
+                      style: Theme.of(ctx)
+                          .textTheme
+                          .titleSmall
+                          ?.copyWith(color: context.kInk),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis),
                   const SizedBox(height: 4),
                   Text(
                     '৳${p.priceBdt.toInt()}',
                     style: Theme.of(ctx).textTheme.bodySmall?.copyWith(
-                        color: KholoColors.plum,
+                        color: context.isDark
+                            ? KholoColors.magenta
+                            : KholoColors.plum,
                         fontWeight: FontWeight.w800),
                   ),
                 ],

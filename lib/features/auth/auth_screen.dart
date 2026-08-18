@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -6,8 +7,14 @@ import '../../app/theme/colors.dart';
 import '../../core/providers/providers.dart';
 import '../../shared/widgets/kholo_animated_loader.dart';
 
-/// Sign in / sign up screen.
-/// For v1 (local-only), creates a stable local user ID.
+/// ─── LUXURY AUTHENTICATION EXPERIENCE ───────────────────────────────────────
+///
+/// Features:
+/// 1. Calm, private authentication portal.
+/// 2. Email & password sign in / account registration.
+/// 3. Haptic feedback on interactions.
+/// 4. Full Dark & Light luxury theme tokens.
+/// ────────────────────────────────────────────────────────────────────────────
 class AuthScreen extends ConsumerStatefulWidget {
   const AuthScreen({super.key});
 
@@ -36,6 +43,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
       setState(() => _error = 'Please enter your email.');
       return;
     }
+    HapticFeedback.mediumImpact();
     setState(() {
       _loading = true;
       _error = null;
@@ -43,7 +51,9 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
 
     KholoAnimatedLoader.show(
       context,
-      message: _isSignUp ? 'Creating your private space...' : 'Signing in to KHOLO...',
+      message: _isSignUp
+          ? 'Creating your private space...'
+          : 'Signing in to KHOLO...',
     );
 
     // Simulate async auth — in production, call a real auth provider.
@@ -68,7 +78,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
     final tt = Theme.of(context).textTheme;
 
     return Scaffold(
-      backgroundColor: KholoColors.canvas,
+      backgroundColor: context.kCanvas,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 28),
@@ -78,9 +88,23 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
               const SizedBox(height: 24),
               // Back
               TextButton.icon(
-                onPressed: () => context.go('/'),
-                icon: const Icon(Icons.arrow_back_rounded, size: 18),
-                label: const Text('Back'),
+                onPressed: () {
+                  HapticFeedback.selectionClick();
+                  context.go('/');
+                },
+                icon: Icon(Icons.arrow_back_rounded,
+                    size: 18,
+                    color: context.isDark
+                        ? KholoColors.magenta
+                        : KholoColors.wine),
+                label: Text(
+                  'Back',
+                  style: TextStyle(
+                    color: context.isDark
+                        ? KholoColors.magenta
+                        : KholoColors.wine,
+                  ),
+                ),
               ),
               const SizedBox(height: 32),
               // Header
@@ -89,7 +113,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                 style: GoogleFonts.playfairDisplay(
                   fontSize: 32,
                   fontWeight: FontWeight.w700,
-                  color: KholoColors.ink,
+                  color: context.kInk,
                   height: 1.2,
                 ),
               ),
@@ -98,27 +122,31 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                 _isSignUp
                     ? 'Your health information is private and stays on your device.'
                     : 'Sign in to continue your KHOLO journey.',
-                style: tt.bodyMedium?.copyWith(color: KholoColors.inkMuted, height: 1.5),
+                style: tt.bodyMedium
+                    ?.copyWith(color: context.kInkMuted, height: 1.5),
               ),
               const SizedBox(height: 40),
 
               // Email
-              const _FieldLabel('Email address'),
+              _FieldLabel('Email address', color: context.kInkMuted),
               const SizedBox(height: 8),
               TextField(
                 controller: _emailCtrl,
                 keyboardType: TextInputType.emailAddress,
                 textInputAction: TextInputAction.next,
                 autofillHints: const [AutofillHints.email],
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   hintText: 'you@example.com',
-                  prefixIcon: Icon(Icons.mail_outline_rounded, color: KholoColors.inkSubtle),
+                  filled: true,
+                  fillColor: context.kCard,
+                  prefixIcon: Icon(Icons.mail_outline_rounded,
+                      color: context.kInkSubtle),
                 ),
               ),
               const SizedBox(height: 16),
 
               // Password
-              const _FieldLabel('Password'),
+              _FieldLabel('Password', color: context.kInkMuted),
               const SizedBox(height: 8),
               TextField(
                 controller: _passwordCtrl,
@@ -129,19 +157,24 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                     ? [AutofillHints.newPassword]
                     : [AutofillHints.password],
                 decoration: InputDecoration(
-                  hintText: _isSignUp ? 'Create a password' : 'Enter your password',
-                  prefixIcon: const Icon(Icons.lock_outline_rounded, color: KholoColors.inkSubtle),
+                  hintText:
+                      _isSignUp ? 'Create a password' : 'Enter your password',
+                  filled: true,
+                  fillColor: context.kCard,
+                  prefixIcon: Icon(Icons.lock_outline_rounded,
+                      color: context.kInkSubtle),
                   suffixIcon: IconButton(
                     icon: Icon(
                       _obscurePassword
                           ? Icons.visibility_off_outlined
                           : Icons.visibility_outlined,
-                      color: KholoColors.inkSubtle,
+                      color: context.kInkSubtle,
                       size: 20,
                     ),
                     onPressed: () =>
                         setState(() => _obscurePassword = !_obscurePassword),
-                    tooltip: _obscurePassword ? 'Show password' : 'Hide password',
+                    tooltip:
+                        _obscurePassword ? 'Show password' : 'Hide password',
                   ),
                 ),
               ),
@@ -164,6 +197,15 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: _loading ? null : _submit,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: context.isDark
+                        ? KholoColors.magenta
+                        : KholoColors.wine,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16)),
+                  ),
                   child: _loading
                       ? const SizedBox(
                           width: 20,
@@ -171,7 +213,10 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
                           child: CircularProgressIndicator(
                               strokeWidth: 2, color: Colors.white),
                         )
-                      : Text(_isSignUp ? 'Create account' : 'Sign in'),
+                      : Text(
+                          _isSignUp ? 'Create account' : 'Sign in',
+                          style: const TextStyle(fontWeight: FontWeight.w700),
+                        ),
                 ),
               ),
               const SizedBox(height: 20),
@@ -179,15 +224,23 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
               // Toggle
               Center(
                 child: TextButton(
-                  onPressed: () => setState(() {
-                    _isSignUp = !_isSignUp;
-                    _error = null;
-                  }),
+                  onPressed: () {
+                    HapticFeedback.selectionClick();
+                    setState(() {
+                      _isSignUp = !_isSignUp;
+                      _error = null;
+                    });
+                  },
                   child: Text(
                     _isSignUp
                         ? 'Already have an account? Sign in'
                         : 'New to KHOLO? Create account',
-                    style: tt.bodyMedium?.copyWith(color: KholoColors.plum),
+                    style: tt.bodyMedium?.copyWith(
+                      color: context.isDark
+                          ? KholoColors.magenta
+                          : KholoColors.wine,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
               ),
@@ -197,21 +250,34 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
               Container(
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: KholoColors.cream,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: KholoColors.divider),
+                  color: context.kCard,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: context.kDivider),
+                  boxShadow: [
+                    BoxShadow(
+                      color: KholoColors.wine.withValues(
+                          alpha: context.isDark ? 0.2 : 0.03),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
                 ),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Icon(Icons.shield_outlined,
-                        color: KholoColors.plum, size: 18),
+                    Icon(
+                      Icons.shield_outlined,
+                      color: context.isDark
+                          ? KholoColors.magenta
+                          : KholoColors.plum,
+                      size: 18,
+                    ),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
                         'No health information is requested until after you sign in. Your data is private and scoped to your account.',
                         style: tt.bodySmall?.copyWith(
-                            color: KholoColors.inkMuted, height: 1.5),
+                            color: context.kInkMuted, height: 1.5),
                       ),
                     ),
                   ],
@@ -227,17 +293,19 @@ class _AuthScreenState extends ConsumerState<AuthScreen> {
 }
 
 class _FieldLabel extends StatelessWidget {
-  const _FieldLabel(this.text);
+  const _FieldLabel(this.text, {required this.color});
   final String text;
+  final Color color;
 
   @override
   Widget build(BuildContext context) {
     return Text(
       text,
       style: Theme.of(context).textTheme.titleSmall?.copyWith(
-            color: KholoColors.inkMuted,
+            color: color,
             fontSize: 12,
             letterSpacing: 0.5,
+            fontWeight: FontWeight.w600,
           ),
     );
   }

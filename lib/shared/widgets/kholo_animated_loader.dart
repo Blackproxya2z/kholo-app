@@ -35,8 +35,7 @@ class KholoGlowingLogo extends StatefulWidget {
   State<KholoGlowingLogo> createState() => _KholoGlowingLogoState();
 }
 
-class _KholoGlowingLogoState extends State<KholoGlowingLogo>
-    with TickerProviderStateMixin {
+class _KholoGlowingLogoState extends State<KholoGlowingLogo> with TickerProviderStateMixin {
   late final AnimationController _bloomCtrl;
   late final AnimationController _orbitCtrl;
   late final AnimationController _twinkleCtrl;
@@ -291,9 +290,7 @@ class _LotusPetalsPainter extends CustomPainter {
       );
 
       final paint = Paint()
-        ..color = (i % 2 == 0
-                ? const Color(0xFFF62477)
-                : const Color(0xFFFFAEC9))
+        ..color = (i % 2 == 0 ? const Color(0xFFF62477) : const Color(0xFFFFAEC9))
             .withValues(alpha: 0.14 + 0.08 * math.sin(bloomProgress * math.pi))
         ..style = PaintingStyle.fill
         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4);
@@ -369,11 +366,11 @@ class KholoAnimatedLoader extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 36, vertical: 32),
               decoration: BoxDecoration(
-                color: KholoColors.canvas,
+                color: context.kCard,
                 borderRadius: BorderRadius.circular(32),
                 boxShadow: [
                   BoxShadow(
-                    color: KholoColors.wine.withValues(alpha: 0.3),
+                    color: KholoColors.wine.withValues(alpha: context.isDark ? 0.4 : 0.3),
                     blurRadius: 36,
                     offset: const Offset(0, 12),
                   ),
@@ -423,7 +420,7 @@ class KholoAnimatedLoader extends StatelessWidget {
               fontSize: 18,
               fontWeight: FontWeight.w800,
               letterSpacing: 3.0,
-              color: KholoColors.wine,
+              color: context.isDark ? KholoColors.magenta : KholoColors.wine,
             ),
           ),
           const SizedBox(height: 6),
@@ -431,7 +428,7 @@ class KholoAnimatedLoader extends StatelessWidget {
             message,
             textAlign: TextAlign.center,
             style: tt.bodySmall?.copyWith(
-              color: KholoColors.inkMuted,
+              color: context.kInkMuted,
               fontWeight: FontWeight.w500,
               letterSpacing: 0.3,
             ),
@@ -442,7 +439,7 @@ class KholoAnimatedLoader extends StatelessWidget {
 
     if (isFullScreen) {
       return Scaffold(
-        backgroundColor: KholoColors.canvas,
+        backgroundColor: context.kCanvas,
         body: Center(child: content),
       );
     }

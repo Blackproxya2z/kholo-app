@@ -1,0 +1,34 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Flutter: Run App (Selected Device)",
+            "request": "launch",
+            "type": "dart"
+        },
+        {
+            "name": "Flutter: Run on Pixel 9 Pro Emulator",
+            "request": "launch",
+            "type": "dart",
+            "deviceId": "Pixel_9_Pro"
+        },
+        {
+            "name": "Flutter: Run on Android",
+            "request": "launch",
+            "type": "dart",
+            "deviceId": "android"
+        },
+        {
+            "name": "Flutter: Run (Release Mode)",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "release"
+        },
+        {
+            "name": "Flutter: Run (Profile Mode)",
+            "request": "launch",
+            "type": "dart",
+            "flutterMode": "profile"
+        }
+    ]
+}

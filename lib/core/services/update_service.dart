@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:crypto/crypto.dart';
@@ -10,6 +11,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import '../models/app_update.dart';
+import 'notification_service.dart';
 
 /// Custom exception thrown when an APK fails cryptographic checksum validation.
 class SecurityIntegrityException implements Exception {
@@ -20,29 +22,130 @@ class SecurityIntegrityException implements Exception {
   String toString() => 'SecurityIntegrityException: $message';
 }
 
-/// ─── IN-APP AUTO-UPDATE & ANTI-TAMPER ENGINE ────────────────────────────────
+/// User-facing download failure exception replacing cryptic network exceptions.
+class UpdateDownloadException implements Exception {
+  final String technicalMessage;
+  final String userMessage;
+
+  const UpdateDownloadException(
+    this.technicalMessage, {
+    this.userMessage =
+        'আপডেট ডাউনলোড সম্পন্ন হতে পারেনি। অনুগ্রহ করে ইন্টারনেট সংযোগ চেক করে আবার চেষ্টা করুন।\n(Update download failed. Please check your internet connection and try again.)',
+  });
+
+  @override
+  String toString() => userMessage;
+}
+
+/// ─── IN-APP AUTO-UPDATE, RESUMABLE DOWNLOAD & RELEASE ENGINE ───────────────
 ///
-/// Features:
-/// 1. Zero-Rate-Limit GitHub Raw / Cloudflare cached version polling.
-/// 2. Cryptographic SHA-256 streaming checksum validation.
-/// 3. In-place upgrade via Android PackageInstaller (preserving all local data).
-/// 4. Anti-tampering defense (deletes corrupted/manipulated binaries immediately).
+/// Production Features:
+/// 1. Resumable chunked APK download with HTTP Range header & auto-reconnect.
+/// 2. Automatic retry mechanism (up to 3 retries with exponential backoff).
+/// 3. Multi-source mirror failover (Primary URL -> CDN Mirrors -> Release Assets).
+/// 4. Stale cache purge & zero-cached-APK guarantee.
+/// 5. Streaming SHA-256 anti-tamper checksum validation before install.
+/// 6. Clear user-friendly error translations without exposing technical stack traces.
+/// 7. Post-update verification, notification dismissal & one-time deduplication.
 /// ────────────────────────────────────────────────────────────────────────────
 class UpdateService {
-  /// GitHub raw version manifest endpoint (cached and CDN-backed).
+  /// GitHub raw version manifest endpoint (CDN-backed).
   static const String versionManifestUrl =
       'https://raw.githubusercontent.com/Blackproxya2z/kholo-releases/main/version.json';
 
+  static const String _keyInstalledVersion = 'kholo_installed_version_code';
+  static const String _keyLastNotifiedVersion = 'kholo_last_notified_version_code';
+  static const String _keyUpdateCompletedVersion =
+      'kholo_update_completed_version_code';
+  static const String _keyMigrationStatus = 'kholo_migration_status';
+
   UpdateService._();
 
-  /// Checks if a newer version is available.
-  /// Returns [AppUpdate] if update exists, null otherwise.
-  static Future<AppUpdate?> checkForUpdate() async {
+  /// Default fallback build code when PackageInfo is unavailable (e.g. unit tests)
+  static const int defaultVersionCode = 20;
+  static const String defaultVersionName = '1.3.0';
+
+  /// Gets current installed app version code (build number, e.g. 20).
+  static Future<int> currentVersionCode() async {
     try {
       final info = await PackageInfo.fromPlatform();
-      final currentCode = int.tryParse(info.buildNumber) ?? 1;
+      final code = int.tryParse(info.buildNumber);
+      if (code != null && code > 0) return code;
+    } catch (_) {}
 
-      // Append timestamp cache-buster to bypass GitHub CDN edge caching
+    return defaultVersionCode;
+  }
+
+  /// Gets current installed app version name (e.g. "1.3.0").
+  static Future<String> currentVersionName() async {
+    try {
+      final info = await PackageInfo.fromPlatform();
+      return info.version.isNotEmpty ? info.version : defaultVersionName;
+    } catch (_) {
+      return defaultVersionName;
+    }
+  }
+
+  /// Called on application start to register the current version and clear obsolete update state.
+  static Future<void> syncInstalledVersionOnLaunch({
+    int? currentInstalledCode,
+  }) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final currentCode = currentInstalledCode ?? await currentVersionCode();
+      final previousInstalled = prefs.getInt(_keyInstalledVersion) ?? 0;
+
+      if (currentCode >= previousInstalled) {
+        // App was freshly installed or updated! Clean up all staged APKs and obsolete flags
+        await cleanupOldApkCache();
+        await prefs.setInt(_keyInstalledVersion, currentCode);
+        await prefs.setInt(_keyUpdateCompletedVersion, currentCode);
+        await prefs.setString(_keyMigrationStatus, 'completed');
+
+        // Cancel any lingering update notification
+        await NotificationService.cancelUpdateNotification();
+        debugPrint(
+            '[UpdateService] App at build $currentCode. Cleared old update state & cache.');
+      }
+    } catch (e) {
+      debugPrint('[UpdateService] syncInstalledVersionOnLaunch error: $e');
+    }
+  }
+
+  /// Purges any outdated downloaded APK files and partial temporary downloads.
+  static Future<void> cleanupOldApkCache() async {
+    try {
+      final tempDir = await getTemporaryDirectory();
+      if (await tempDir.exists()) {
+        final files = tempDir.listSync();
+        for (final f in files) {
+          if (f is File) {
+            final name = f.path.toLowerCase();
+            if (name.endsWith('.apk') ||
+                name.endsWith('.part') ||
+                name.endsWith('.tmp') ||
+                name.contains('kholo_v')) {
+              try {
+                await f.delete();
+                debugPrint('[UpdateService] Deleted stale APK cache: ${f.path}');
+              } catch (_) {}
+            }
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('[UpdateService] cleanupOldApkCache error: $e');
+    }
+  }
+
+  /// Checks if a newer version is available.
+  /// Returns [AppUpdate] if a newer release exists, null otherwise.
+  static Future<AppUpdate?> checkForUpdate() async {
+    try {
+      final currentCode = await currentVersionCode();
+      final currentName = await currentVersionName();
+
+      // Append timestamp cache-buster to bypass CDN edge caching
       final cacheBuster = DateTime.now().millisecondsSinceEpoch;
       final uri = Uri.parse('$versionManifestUrl?nocache=$cacheBuster');
 
@@ -55,39 +158,88 @@ class UpdateService {
               'Pragma': 'no-cache',
             },
           )
-          .timeout(const Duration(seconds: 8));
+          .timeout(const Duration(seconds: 10));
 
       if (response.statusCode != 200) {
-        debugPrint('[UpdateService] Failed to fetch manifest. Status: ${response.statusCode}');
+        debugPrint(
+            '[UpdateService] Failed to fetch manifest. Status: ${response.statusCode}');
         return null;
       }
 
-      final update = AppUpdate.fromJson(
-        jsonDecode(response.body) as Map<String, dynamic>,
-      );
+      final json = jsonDecode(response.body) as Map<String, dynamic>;
+      final update = AppUpdate.fromJson(json);
 
-      debugPrint('[UpdateService] Remote version: ${update.versionCode}, Current: $currentCode');
+      debugPrint(
+          '[UpdateService] Remote build: ${update.versionCode} (v${update.latestVersion}), Installed: $currentCode (v$currentName)');
 
-      // If installed app is already up to date, sync last notified code
-      if (update.versionCode <= currentCode) {
-        try {
-          final prefs = await SharedPreferences.getInstance();
-          final lastNotified = prefs.getInt('kholo_last_notified_update_code') ?? 0;
-          if (currentCode > lastNotified) {
-            await prefs.setInt('kholo_last_notified_update_code', currentCode);
-          }
-        } catch (_) {}
+      final prefs = await SharedPreferences.getInstance();
+
+      // If installed app is already at or above remote release, mark completed
+      if (!update.isNewerThan(currentCode, currentName)) {
+        await prefs.setInt(_keyLastNotifiedVersion, currentCode);
+        await prefs.setInt(_keyUpdateCompletedVersion, currentCode);
+        await prefs.setString(_keyMigrationStatus, 'completed');
+        await NotificationService.cancelUpdateNotification();
+        return null;
       }
 
-      // Only show update if remote versionCode is strictly greater
-      if (update.versionCode > currentCode && update.apkUrl.isNotEmpty) {
-        return update;
-      }
-      return null;
+      final effectiveApkUrl = update.effectiveApkUrl;
+      return update.copyWith(apkUrl: effectiveApkUrl);
     } catch (e) {
       debugPrint('[UpdateService] checkForUpdate error: $e');
       return null;
     }
+  }
+
+  /// Determines if a notification should be shown for this version (Strictly once per release).
+  static Future<bool> shouldShowUpdateNotification(
+    int remoteVersionCode, {
+    int? currentInstalledCode,
+    String? remoteVersionName,
+    String? currentInstalledName,
+  }) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final lastNotified = prefs.getInt(_keyLastNotifiedVersion) ?? 0;
+      final currentCode = currentInstalledCode ?? await currentVersionCode();
+      final currentName = currentInstalledName ?? await currentVersionName();
+
+      // If semantic versions are provided and current installed is newer than remote, never notify
+      if (remoteVersionName != null &&
+          AppUpdate.isSemanticNewer(currentName, remoteVersionName)) {
+        return false;
+      }
+
+      // Never notify if current installed version code is at or above remote build
+      if (currentCode >= remoteVersionCode && remoteVersionName == null) {
+        return false;
+      }
+
+      // Only notify if remoteVersionCode is strictly higher than last notified version
+      return remoteVersionCode > lastNotified;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Marks that an update notification has been dispatched for [remoteVersionCode].
+  static Future<void> recordNotificationSent(int remoteVersionCode) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt(_keyLastNotifiedVersion, remoteVersionCode);
+      await prefs.setString(_keyMigrationStatus, 'notified');
+    } catch (_) {}
+  }
+
+  /// Marks migration as completed for [installedVersionCode] and cancels update alerts.
+  static Future<void> recordUpdateCompleted(int installedVersionCode) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt(_keyUpdateCompletedVersion, installedVersionCode);
+      await prefs.setInt(_keyLastNotifiedVersion, installedVersionCode);
+      await prefs.setString(_keyMigrationStatus, 'completed');
+      await NotificationService.cancelUpdateNotification();
+    } catch (_) {}
   }
 
   /// Calculates SHA-256 hash using chunked stream without loading whole APK into memory.
@@ -115,113 +267,247 @@ class UpdateService {
     return isValid;
   }
 
-  /// Downloads the APK at [apkUrl], tracks progress, and executes SHA-256 verification.
+  /// ─── RESILIENT CHUNKED APK DOWNLOAD WITH AUTO-RETRY & MIRROR FAILOVER ─────
   ///
-  /// If SHA-256 fails or file is manipulated, the file is deleted immediately and
-  /// [SecurityIntegrityException] is reported.
-  static Future<String?> downloadApk(
+  /// Features:
+  /// - Resumes interrupted downloads using HTTP Range header (`bytes=N-`).
+  /// - Automatic retries (up to 3 attempts with exponential backoff).
+  /// - Mirror failover if primary endpoint fails.
+  /// - Clean file staging with unique isolated filename: `kholo_v{version}_{timestamp}.apk`.
+  /// - SHA-256 cryptographic verification & size integrity check.
+  /// - User-friendly error translations without raw technical traces.
+  static Future<String> downloadApk(
     String apkUrl, {
+    List<String> mirrorUrls = const [],
     String? expectedSha256,
+    int? expectedFileSize,
+    String? targetVersion,
+    int? targetVersionCode,
     required ValueChanged<double> onProgress,
     ValueChanged<String>? onStatusChange,
   }) async {
-    try {
-      final tempDir = await getTemporaryDirectory();
-      final savePath = '${tempDir.path}/kholo_update_staged.apk';
-      final file = File(savePath);
+    // 1. Wipe stale APK and partial cache first
+    await cleanupOldApkCache();
 
-      // Delete any previous staged file
-      if (await file.exists()) {
-        await file.delete();
+    final tempDir = await getTemporaryDirectory();
+    final timestamp = DateTime.now().millisecondsSinceEpoch;
+    final verTag = targetVersion != null
+        ? 'v${targetVersion}_b${targetVersionCode ?? 0}_'
+        : '';
+    final finalApkPath = '${tempDir.path}/kholo_$verTag$timestamp.apk';
+    final partFilePath = '$finalApkPath.part';
+    final partFile = File(partFilePath);
+    final finalFile = File(finalApkPath);
+
+    // Build ordered list of candidate URLs
+    final candidateUrls = <String>[];
+    if (apkUrl.trim().isNotEmpty) candidateUrls.add(apkUrl.trim());
+    for (final m in mirrorUrls) {
+      if (m.trim().isNotEmpty && !candidateUrls.contains(m.trim())) {
+        candidateUrls.add(m.trim());
       }
-
-      onStatusChange?.call('Connecting to update server...');
-
-      final dio = Dio(
-        BaseOptions(
-          followRedirects: true,
-          maxRedirects: 10,
-          connectTimeout: const Duration(seconds: 30),
-          receiveTimeout: const Duration(minutes: 10),
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (Android; Mobile; rv:109.0) Gecko/109.0 Firefox/119.0',
-            'Accept': '*/*',
-          },
-        ),
+    }
+    if (candidateUrls.isEmpty) {
+      candidateUrls.add(
+        'https://github.com/Blackproxya2z/kholo-app/releases/download/v${targetVersion ?? defaultVersionName}/app-release.apk',
       );
+    }
 
-      onStatusChange?.call('Downloading update...');
+    onStatusChange?.call('Connecting to secure KHOLO update server...');
 
-      await dio.download(
-        apkUrl,
-        savePath,
-        onReceiveProgress: (received, total) {
-          if (total > 0) {
-            onProgress(received / total);
+    Exception? lastError;
+
+    for (int urlIndex = 0; urlIndex < candidateUrls.length; urlIndex++) {
+      final currentUrl = candidateUrls[urlIndex];
+      debugPrint(
+          '[UpdateService] Attempting download from endpoint [${urlIndex + 1}/${candidateUrls.length}]: $currentUrl');
+
+      const maxRetries = 3;
+      int downloadedBytes = 0;
+      int totalBytes = expectedFileSize ?? 0;
+
+      for (int attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+          if (partFile.existsSync()) {
+            downloadedBytes = partFile.lengthSync();
+          } else {
+            downloadedBytes = 0;
           }
-        },
-      );
 
-      // Verify file exists and has content
-      if (!await file.exists() || (await file.length()) == 0) {
-        throw Exception('Downloaded file is empty or missing.');
-      }
-
-      // Verify SHA-256 Checksum if provided
-      if (expectedSha256 != null && expectedSha256.trim().isNotEmpty) {
-        onStatusChange?.call('Verifying integrity (SHA-256)...');
-        final isVerified = await verifyChecksum(file, expectedSha256);
-
-        if (!isVerified) {
-          // Immediately wipe tampered payload
-          if (await file.exists()) {
-            await file.delete();
+          if (attempt > 1) {
+            final mb = (downloadedBytes / (1024 * 1024)).toStringAsFixed(1);
+            onStatusChange?.call(
+                'Reconnecting... Resuming download from $mb MB (Attempt $attempt of $maxRetries)');
+            await Future.delayed(Duration(seconds: attempt));
+          } else {
+            onStatusChange?.call('Downloading latest KHOLO build...');
           }
-          throw const SecurityIntegrityException(
-            'APK integrity check failed! Binary may be tampered or corrupted.',
+
+          final dio = Dio(
+            BaseOptions(
+              connectTimeout: const Duration(seconds: 45),
+              receiveTimeout: const Duration(minutes: 15),
+              sendTimeout: const Duration(seconds: 45),
+              followRedirects: true,
+              maxRedirects: 15,
+              validateStatus: (status) => status != null && status < 400,
+              headers: {
+                'Accept': '*/*',
+                'User-Agent':
+                    'KHOLO-App/${targetVersion ?? defaultVersionName} (Android; Mobile)',
+                'Cache-Control': 'no-cache, no-store, must-revalidate',
+                'Pragma': 'no-cache',
+                if (downloadedBytes > 0) 'Range': 'bytes=$downloadedBytes-',
+              },
+            ),
           );
+
+          final response = await dio.get<ResponseBody>(
+            currentUrl,
+            options: Options(
+              responseType: ResponseType.stream,
+              headers: {
+                if (downloadedBytes > 0) 'Range': 'bytes=$downloadedBytes-',
+              },
+            ),
+          );
+
+          final statusCode = response.statusCode ?? 200;
+          final isPartial = statusCode == 206;
+
+          // Determine content length
+          final contentRangeHeader =
+              response.headers.value(HttpHeaders.contentRangeHeader);
+          final contentLengthHeader =
+              response.headers.value(HttpHeaders.contentLengthHeader);
+
+          if (contentRangeHeader != null) {
+            // E.g. "bytes 1048576-65860000/65860001"
+            final match = RegExp(r'/(\d+)').firstMatch(contentRangeHeader);
+            if (match != null) {
+              totalBytes = int.tryParse(match.group(1)!) ?? totalBytes;
+            }
+          } else if (contentLengthHeader != null) {
+            final len = int.tryParse(contentLengthHeader) ?? 0;
+            if (isPartial) {
+              totalBytes = downloadedBytes + len;
+            } else {
+              totalBytes = len;
+            }
+          }
+
+          // Open stream in append mode if resuming, or write from 0
+          final fileMode = isPartial && downloadedBytes > 0
+              ? FileMode.append
+              : FileMode.write;
+
+          if (!isPartial && downloadedBytes > 0) {
+            downloadedBytes = 0;
+          }
+
+          final sink = partFile.openWrite(mode: fileMode);
+
+          try {
+            await for (final chunk in response.data!.stream) {
+              sink.add(chunk);
+              downloadedBytes += chunk.length;
+
+              if (totalBytes > 0) {
+                final progress =
+                    (downloadedBytes / totalBytes).clamp(0.0, 1.0);
+                onProgress(progress);
+              }
+            }
+          } finally {
+            await sink.flush();
+            await sink.close();
+          }
+
+          // Stream finished successfully!
+          if (partFile.existsSync() && partFile.lengthSync() >= 5 * 1024 * 1024) {
+            // Rename partial file to final APK
+            if (finalFile.existsSync()) finalFile.deleteSync();
+            partFile.renameSync(finalApkPath);
+            onProgress(1.0);
+
+            // 2. Cryptographic SHA-256 Anti-Tamper Verification
+            if (expectedSha256 != null && expectedSha256.trim().isNotEmpty) {
+              onStatusChange
+                  ?.call('Verifying release cryptographic signature...');
+              final isValid =
+                  await verifyChecksum(finalFile, expectedSha256);
+
+              if (!isValid) {
+                await finalFile.delete();
+                throw const SecurityIntegrityException(
+                  'APK checksum verification failed. The downloaded file signature does not match the official release.',
+                );
+              }
+            }
+
+            onStatusChange?.call('Ready to install');
+            debugPrint(
+                '[UpdateService] Download & validation successful: $finalApkPath');
+            return finalApkPath;
+          }
+        } catch (e) {
+          debugPrint(
+              '[UpdateService] Download attempt $attempt failed from $currentUrl: $e');
+          lastError = e is Exception ? e : Exception(e.toString());
+          if (e is SecurityIntegrityException) {
+            rethrow;
+          }
         }
       }
-
-      return savePath;
-    } catch (e) {
-      debugPrint('[UpdateService] downloadApk error: $e');
-      rethrow;
     }
-  }
 
-  /// Triggers the Android system package installer for an in-place upgrade.
-  /// Existing user data, SQLite records, and SharedPreferences are preserved.
-  static Future<OpenResult> installApk(String filePath) async {
-    debugPrint('[UpdateService] Triggering in-place installation: $filePath');
-    if (Platform.isAndroid) {
+    // Clean up temporary partial file on complete failure
+    if (partFile.existsSync()) {
       try {
-        await Permission.requestInstallPackages.request();
+        partFile.deleteSync();
       } catch (_) {}
     }
-    return await OpenFilex.open(
-      filePath,
-      type: 'application/vnd.android.package-archive',
+
+    debugPrint('[UpdateService] All download attempts failed: $lastError');
+    throw UpdateDownloadException(
+      lastError?.toString() ?? 'Network connection closed prematurely.',
     );
   }
 
-  /// Returns current app version display string, e.g. "1.0.0 (build 1)"
-  static Future<String> currentVersionDisplay() async {
+  /// Requests package installation permission on Android 8.0+ and triggers system package installer.
+  static Future<bool> installApk(String filePath) async {
     try {
-      final info = await PackageInfo.fromPlatform();
-      return '${info.version} (build ${info.buildNumber})';
-    } catch (_) {
-      return '1.0.0 (build 1)';
-    }
-  }
+      final file = File(filePath);
+      if (!await file.exists()) {
+        debugPrint(
+            '[UpdateService] Cannot install: file does not exist: $filePath');
+        return false;
+      }
 
-  /// Returns current app versionCode integer
-  static Future<int> currentVersionCode() async {
-    try {
-      final info = await PackageInfo.fromPlatform();
-      return int.tryParse(info.buildNumber) ?? 1;
-    } catch (_) {
-      return 1;
+      if (Platform.isAndroid) {
+        final installPermission =
+            await Permission.requestInstallPackages.status;
+        if (!installPermission.isGranted) {
+          final requested = await Permission.requestInstallPackages.request();
+          if (!requested.isGranted) {
+            debugPrint(
+                '[UpdateService] REQUEST_INSTALL_PACKAGES permission denied by user.');
+            return false;
+          }
+        }
+      }
+
+      final result = await OpenFilex.open(
+        filePath,
+        type: 'application/vnd.android.package-archive',
+      );
+
+      debugPrint(
+          '[UpdateService] OpenFilex result: ${result.type} - ${result.message}');
+      return result.type == ResultType.done;
+    } catch (e) {
+      debugPrint('[UpdateService] installApk error: $e');
+      return false;
     }
   }
 }

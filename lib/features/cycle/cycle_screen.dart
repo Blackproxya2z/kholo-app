@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:table_calendar/table_calendar.dart';
-import '../../app/theme/colors.dart';
+import '../../app/theme/colors.dart'; // also provides KholoThemeExtension
 import '../../core/models/health_profile.dart';
 import '../../core/models/cycle_log.dart';
 import '../../core/providers/providers.dart';
@@ -34,12 +34,12 @@ class _CycleScreenState extends ConsumerState<CycleScreen> {
     }
 
     return Scaffold(
-      backgroundColor: KholoColors.canvas,
+      backgroundColor: context.kCanvas,
       appBar: AppBar(
-        title: const Text('Your cycle'),
+        title: Text('Your cycle', style: TextStyle(color: context.kInk)),
         actions: [
           IconButton(
-            icon: const Icon(Icons.add_circle_outline_rounded),
+            icon: Icon(Icons.add_circle_outline_rounded, color: context.kInk),
             onPressed: () => LogBottomSheet.show(context),
             tooltip: 'Add log',
           ),
@@ -81,7 +81,7 @@ class _CycleScreenState extends ConsumerState<CycleScreen> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => LogBottomSheet.show(context, initialDate: _selectedDay),
-        backgroundColor: KholoColors.wine,
+        backgroundColor: context.isDark ? KholoColors.magenta : KholoColors.wine,
         tooltip: 'Log today',
         child: const Icon(Icons.add_rounded, color: Colors.white),
       ),
@@ -148,31 +148,31 @@ class _KholoCalendar extends StatelessWidget {
         titleTextStyle: GoogleFonts.playfairDisplay(
           fontSize: 16,
           fontWeight: FontWeight.w600,
-          color: KholoColors.ink,
+          color: context.kInk,
         ),
-        leftChevronIcon: const Icon(Icons.chevron_left, color: KholoColors.wine),
-        rightChevronIcon: const Icon(Icons.chevron_right, color: KholoColors.wine),
+        leftChevronIcon: Icon(Icons.chevron_left, color: context.isDark ? KholoColors.magenta : KholoColors.wine),
+        rightChevronIcon: Icon(Icons.chevron_right, color: context.isDark ? KholoColors.magenta : KholoColors.wine),
         headerPadding: const EdgeInsets.symmetric(vertical: 8),
       ),
       calendarStyle: CalendarStyle(
         todayDecoration: BoxDecoration(
-          color: KholoColors.wine.withValues(alpha: 0.15),
+          color: (context.isDark ? KholoColors.magenta : KholoColors.wine).withValues(alpha: 0.15),
           shape: BoxShape.circle,
         ),
-        todayTextStyle: const TextStyle(
-          color: KholoColors.wine,
+        todayTextStyle: TextStyle(
+          color: context.isDark ? KholoColors.magenta : KholoColors.wine,
           fontWeight: FontWeight.w700,
         ),
-        selectedDecoration: const BoxDecoration(
-          color: KholoColors.wine,
+        selectedDecoration: BoxDecoration(
+          color: context.isDark ? KholoColors.magenta : KholoColors.wine,
           shape: BoxShape.circle,
         ),
         selectedTextStyle: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
-        weekendTextStyle: const TextStyle(color: KholoColors.ink),
-        defaultTextStyle: const TextStyle(color: KholoColors.ink),
-        outsideTextStyle: const TextStyle(color: KholoColors.inkSubtle),
-        markerDecoration: const BoxDecoration(
-          color: KholoColors.wine,
+        weekendTextStyle: TextStyle(color: context.kInk),
+        defaultTextStyle: TextStyle(color: context.kInk),
+        outsideTextStyle: TextStyle(color: context.kInkSubtle),
+        markerDecoration: BoxDecoration(
+          color: context.isDark ? KholoColors.magenta : KholoColors.wine,
           shape: BoxShape.circle,
         ),
         markersMaxCount: 1,
@@ -206,7 +206,9 @@ class _KholoCalendar extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.all(2),
       decoration: BoxDecoration(
-        color: isSelected ? KholoColors.plum : (phaseColor ?? Colors.transparent),
+        color: isSelected
+            ? (Theme.of(context).brightness == Brightness.dark ? KholoColors.magenta : KholoColors.plum)
+            : (phaseColor ?? Colors.transparent),
         borderRadius: BorderRadius.circular(10),
         border: fertile && !isSelected
             ? Border.all(color: KholoColors.lavender, width: 1.5)
@@ -221,10 +223,10 @@ class _KholoCalendar extends StatelessWidget {
               color: isSelected
                   ? Colors.white
                   : isOutside
-                      ? KholoColors.inkSubtle
+                      ? context.kInkSubtle
                       : isToday
-                          ? KholoColors.plum
-                          : KholoColors.ink,
+                          ? (context.isDark ? KholoColors.magenta : KholoColors.plum)
+                          : context.kInk,
               fontWeight: isToday || isSelected ? FontWeight.w700 : FontWeight.w400,
               fontSize: 13,
             ),
@@ -261,10 +263,10 @@ class _PhaseLegend extends StatelessWidget {
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         border: Border(
-          top: BorderSide(color: KholoColors.divider),
-          bottom: BorderSide(color: KholoColors.divider),
+          top: BorderSide(color: context.kDivider),
+          bottom: BorderSide(color: context.kDivider),
         ),
       ),
       child: Semantics(
@@ -288,9 +290,9 @@ class _PhaseLegend extends StatelessWidget {
                   const SizedBox(width: 4),
                   Text(
                     p.$2,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 10,
-                      color: KholoColors.inkMuted,
+                      color: context.kInkMuted,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -344,7 +346,7 @@ class _DayDetail extends StatelessWidget {
                     if (phase != null)
                       Text(
                         '${phase.displayName} · ${phase.description}',
-                        style: tt.bodySmall?.copyWith(color: KholoColors.inkMuted),
+                        style: tt.bodySmall?.copyWith(color: context.kInkMuted),
                       ),
                   ],
                 ),
@@ -366,7 +368,7 @@ class _DayDetail extends StatelessWidget {
           if (phase != null)
             Text(
               '* Phase estimates based on your logged settings.',
-              style: tt.labelSmall?.copyWith(color: KholoColors.inkSubtle),
+              style: tt.labelSmall?.copyWith(color: context.kInkSubtle),
             ),
         ],
       ),
@@ -387,17 +389,17 @@ class _EmptyDayState extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: KholoColors.cream,
+        color: context.kSurface,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
         children: [
-          const Icon(Icons.add_circle_outline, color: KholoColors.inkSubtle),
+          Icon(Icons.add_circle_outline, color: context.kInkSubtle),
           const SizedBox(width: 12),
           Text(
             'No entries for this day.\nTap + Add to log something.',
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: KholoColors.inkMuted,
+                  color: context.kInkMuted,
                   height: 1.5,
                 ),
           ),
@@ -418,9 +420,9 @@ class _LogEntry extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: KholoColors.cream,
+        color: context.kSurface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: KholoColors.divider),
+        border: Border.all(color: context.kDivider),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -429,7 +431,7 @@ class _LogEntry extends StatelessWidget {
             children: [
               Icon(
                 _eventIcon(log.eventType),
-                color: KholoColors.plum,
+                color: context.isDark ? KholoColors.magenta : KholoColors.plum,
                 size: 18,
               ),
               const SizedBox(width: 8),
@@ -456,7 +458,7 @@ class _LogEntry extends StatelessWidget {
           if (log.notes != null && log.notes!.isNotEmpty) ...[
             const SizedBox(height: 8),
             Text(log.notes!,
-                style: tt.bodySmall?.copyWith(color: KholoColors.inkMuted, height: 1.5)),
+                style: tt.bodySmall?.copyWith(color: context.kInkMuted, height: 1.5)),
           ],
         ],
       ),
@@ -505,7 +507,7 @@ class _UpcomingDates extends StatelessWidget {
           child: Text(
             'Select a day to see details,\nor add your last period to see phase estimates.',
             textAlign: TextAlign.center,
-            style: tt.bodyMedium?.copyWith(color: KholoColors.inkMuted, height: 1.5),
+            style: tt.bodyMedium?.copyWith(color: context.kInkMuted, height: 1.5),
           ),
         ),
       );
@@ -528,7 +530,7 @@ class _UpcomingDates extends StatelessWidget {
           Text('Upcoming (estimates)', style: tt.titleMedium),
           const SizedBox(height: 4),
           Text('* These are estimates, not medical predictions.',
-              style: tt.bodySmall?.copyWith(color: KholoColors.inkSubtle)),
+              style: tt.bodySmall?.copyWith(color: context.kInkSubtle)),
           const SizedBox(height: 16),
           _DateRow(
             label: 'Next period',

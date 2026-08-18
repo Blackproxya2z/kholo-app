@@ -1,12 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../app/theme/colors.dart';
 import '../../core/models/cycle_log.dart';
 import '../../core/providers/providers.dart';
+import '../../core/services/brand_emotional_state_service.dart';
 
-/// Bottom sheet for quick cycle event logging.
-/// Rises from the bottom on mobile, matches last log type.
+/// ─── ONE-TAP QUICK CYCLE & BODY EVENT LOGGING SHEET ────────────────────────
+///
+/// Features:
+/// 1. Period flow intensity (Spotting, Light, Medium, Heavy).
+/// 2. Mood states (Happy, Calm, Okay, Low, Irritated).
+/// 3. Symptoms (Cramps, Headache, Bloating, Fatigue, etc.).
+/// 4. Body metrics: Cervical Mucus & Intimacy.
+/// 5. Tactile haptic feedback & instant local storage save.
+/// ────────────────────────────────────────────────────────────────────────────
 class LogBottomSheet extends ConsumerStatefulWidget {
   const LogBottomSheet({super.key, this.initialDate});
   final DateTime? initialDate;
@@ -30,8 +39,13 @@ class _LogBottomSheetState extends ConsumerState<LogBottomSheet> {
   FlowIntensity? _flow;
   Mood? _mood;
   final Set<String> _symptoms = {};
+  String? _cervicalMucus;
+  String? _intimacy;
   final _notesController = TextEditingController();
   bool _saving = false;
+
+  static const _mucusOptions = ['Dry', 'Sticky', 'Creamy', 'Egg white', 'Watery'];
+  static const _intimacyOptions = ['Protected', 'Unprotected', 'None'];
 
   @override
   void initState() {
@@ -46,6 +60,7 @@ class _LogBottomSheetState extends ConsumerState<LogBottomSheet> {
   }
 
   Future<void> _save() async {
+    HapticFeedback.mediumImpact();
     setState(() => _saving = true);
     final log = CycleLog(
       eventDate: _utcDate(_date),
@@ -53,11 +68,15 @@ class _LogBottomSheetState extends ConsumerState<LogBottomSheet> {
       flow: _flow,
       mood: _mood,
       symptoms: _symptoms.toList(),
+      cervicalMucus: _cervicalMucus,
+      intimacy: _intimacy,
       notes: _notesController.text.trim().isEmpty
           ? null
           : _notesController.text.trim(),
     );
     await ref.read(cycleLogsProvider.notifier).addOrUpdate(log);
+    await BrandEmotionalStateService.recordHealthLog();
+
     if (mounted) {
       Navigator.of(context).pop();
       _showSaveToast(context);
@@ -71,7 +90,7 @@ class _LogBottomSheetState extends ConsumerState<LogBottomSheet> {
           children: [
             Icon(Icons.check_circle_outline, color: Colors.white, size: 18),
             SizedBox(width: 8),
-            Text('Entry saved'),
+            Text('Health check-in saved privately'),
           ],
         ),
         backgroundColor: KholoColors.wine,
@@ -85,9 +104,9 @@ class _LogBottomSheetState extends ConsumerState<LogBottomSheet> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(
-        color: KholoColors.canvas,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      decoration: BoxDecoration(
+        color: context.kSurface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
       ),
       padding: EdgeInsets.only(
         bottom: MediaQuery.of(context).viewInsets.bottom,
@@ -103,7 +122,7 @@ class _LogBottomSheetState extends ConsumerState<LogBottomSheet> {
                 width: 36,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: KholoColors.divider,
+                  color: context.kDivider,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -115,20 +134,20 @@ class _LogBottomSheetState extends ConsumerState<LogBottomSheet> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Log entry',
+                  'Daily Check-in',
                   style: GoogleFonts.playfairDisplay(
                     fontSize: 22,
                     fontWeight: FontWeight.w700,
-                    color: KholoColors.ink,
+                    color: context.kInk,
                   ),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.close_rounded),
+                  icon: Icon(Icons.close_rounded, color: context.kInkSubtle),
                   onPressed: () => Navigator.of(context).pop(),
                 ),
               ],
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 20),
 
             // Date
             const _SectionLabel('Date'),
@@ -140,7 +159,7 @@ class _LogBottomSheetState extends ConsumerState<LogBottomSheet> {
             const SizedBox(height: 20),
 
             // Event type
-            const _SectionLabel('What are you logging?'),
+            const _SectionLabel('Event Category'),
             const SizedBox(height: 8),
             _EventTypeSelector(
               selected: _eventType,
@@ -148,10 +167,10 @@ class _LogBottomSheetState extends ConsumerState<LogBottomSheet> {
             ),
             const SizedBox(height: 20),
 
-            // Flow (show only for period events)
+            // Flow (show for period and general check-in)
             if (_eventType == CycleEventType.periodStart ||
                 _eventType == CycleEventType.checkIn) ...[
-              const _SectionLabel('Flow'),
+              const _SectionLabel('Menstrual Flow'),
               const SizedBox(height: 8),
               _FlowSelector(
                 selected: _flow,
@@ -161,7 +180,7 @@ class _LogBottomSheetState extends ConsumerState<LogBottomSheet> {
             ],
 
             // Mood
-            const _SectionLabel('Mood'),
+            const _SectionLabel('Mood & Energy'),
             const SizedBox(height: 8),
             _MoodSelector(
               selected: _mood,
@@ -170,7 +189,7 @@ class _LogBottomSheetState extends ConsumerState<LogBottomSheet> {
             const SizedBox(height: 20),
 
             // Symptoms
-            const _SectionLabel('Symptoms'),
+            const _SectionLabel('Physical Symptoms'),
             const SizedBox(height: 8),
             _SymptomChips(
               selected: _symptoms,
@@ -184,25 +203,78 @@ class _LogBottomSheetState extends ConsumerState<LogBottomSheet> {
             ),
             const SizedBox(height: 20),
 
+            // Cervical Mucus
+            const _SectionLabel('Cervical Mucus'),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              children: _mucusOptions.map((m) {
+                final isSel = _cervicalMucus == m;
+                return ChoiceChip(
+                  label: Text(m),
+                  selected: isSel,
+                  selectedColor: KholoColors.plum,
+                  labelStyle: TextStyle(
+                    color: isSel ? Colors.white : context.kInk,
+                    fontSize: 12,
+                  ),
+                  backgroundColor: context.kCard,
+                  onSelected: (_) =>
+                      setState(() => _cervicalMucus = isSel ? null : m),
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 20),
+
+            // Intimacy
+            const _SectionLabel('Intimacy'),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              children: _intimacyOptions.map((opt) {
+                final isSel = _intimacy == opt;
+                return ChoiceChip(
+                  label: Text(opt),
+                  selected: isSel,
+                  selectedColor: KholoColors.rose,
+                  labelStyle: TextStyle(
+                    color: isSel ? Colors.white : context.kInk,
+                    fontSize: 12,
+                  ),
+                  backgroundColor: context.kCard,
+                  onSelected: (_) =>
+                      setState(() => _intimacy = isSel ? null : opt),
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 20),
+
             // Notes
-            const _SectionLabel('Notes (optional)'),
+            const _SectionLabel('Private Reflection (Optional)'),
             const SizedBox(height: 8),
             TextField(
               controller: _notesController,
-              maxLines: 3,
-              maxLength: 1500,
+              maxLines: 2,
+              maxLength: 1000,
               decoration: const InputDecoration(
-                hintText: 'Anything else on your mind…',
+                hintText: 'Anything else on your mind today…',
                 counterText: '',
               ),
             ),
-            const SizedBox(height: 28),
+            const SizedBox(height: 24),
 
-            // Save
+            // Save Button
             SizedBox(
               width: double.infinity,
+              height: 52,
               child: ElevatedButton(
                 onPressed: _saving ? null : _save,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: KholoColors.plum,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16)),
+                ),
                 child: _saving
                     ? const SizedBox(
                         width: 20,
@@ -212,7 +284,9 @@ class _LogBottomSheetState extends ConsumerState<LogBottomSheet> {
                           color: Colors.white,
                         ),
                       )
-                    : const Text('Save entry'),
+                    : const Text('Save Check-in',
+                        style: TextStyle(
+                            fontWeight: FontWeight.w700, fontSize: 16)),
               ),
             ),
           ],
@@ -222,9 +296,7 @@ class _LogBottomSheetState extends ConsumerState<LogBottomSheet> {
   }
 }
 
-// A workaround because we can't import cycle_engine in widget without circular dep
-DateTime _utcDate(DateTime d) =>
-    DateTime.utc(d.year, d.month, d.day);
+DateTime _utcDate(DateTime d) => DateTime.utc(d.year, d.month, d.day);
 
 class _SectionLabel extends StatelessWidget {
   const _SectionLabel(this.text);
@@ -233,9 +305,10 @@ class _SectionLabel extends StatelessWidget {
   Widget build(BuildContext context) => Text(
         text,
         style: Theme.of(context).textTheme.titleSmall?.copyWith(
-              color: KholoColors.inkMuted,
+              color: context.kInkMuted,
               letterSpacing: 0.8,
               fontSize: 11,
+              fontWeight: FontWeight.w700,
             ),
       );
 }
@@ -260,9 +333,9 @@ class _DateSelector extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
-          color: KholoColors.cream,
+          color: context.kCard,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: KholoColors.divider),
+          border: Border.all(color: context.kDivider),
         ),
         child: Row(
           children: [
@@ -271,10 +344,13 @@ class _DateSelector extends StatelessWidget {
             const SizedBox(width: 10),
             Text(
               _formatDate(date),
-              style: Theme.of(context).textTheme.bodyMedium,
+              style: Theme.of(context)
+                  .textTheme
+                  .bodyMedium
+                  ?.copyWith(color: context.kInk),
             ),
             const Spacer(),
-            const Icon(Icons.chevron_right, color: KholoColors.inkSubtle),
+            Icon(Icons.chevron_right, color: context.kInkSubtle),
           ],
         ),
       ),
@@ -307,10 +383,10 @@ class _EventTypeSelector extends StatelessWidget {
           onSelected: (_) => onSelected(t),
           selectedColor: KholoColors.plum,
           labelStyle: TextStyle(
-            color: isSelected ? Colors.white : KholoColors.ink,
+            color: isSelected ? Colors.white : context.kInk,
             fontWeight: FontWeight.w500,
           ),
-          backgroundColor: KholoColors.lavenderLight,
+          backgroundColor: context.kTint(KholoColors.lavender),
         );
       }).toList(),
     );
@@ -331,8 +407,11 @@ class _FlowSelector extends StatelessWidget {
           label: const Text('None'),
           selected: selected == null,
           onSelected: (_) => onSelected(null),
-          selectedColor: KholoColors.cream,
-          backgroundColor: KholoColors.cream,
+          selectedColor: KholoColors.plum,
+          labelStyle: TextStyle(
+            color: selected == null ? Colors.white : context.kInk,
+          ),
+          backgroundColor: context.kCard,
         ),
         ...FlowIntensity.values.map((f) {
           final isSelected = selected == f;
@@ -342,9 +421,9 @@ class _FlowSelector extends StatelessWidget {
             onSelected: (_) => onSelected(f),
             selectedColor: KholoColors.rose,
             labelStyle: TextStyle(
-              color: isSelected ? Colors.white : KholoColors.ink,
+              color: isSelected ? Colors.white : context.kInk,
             ),
-            backgroundColor: KholoColors.roseLight,
+            backgroundColor: context.kTint(KholoColors.rose),
           );
         }),
       ],
@@ -373,13 +452,15 @@ class _MoodSelector extends StatelessWidget {
               button: true,
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 150),
-                width: 48,
-                height: 48,
+                width: 52,
+                height: 52,
                 decoration: BoxDecoration(
-                  color: isSelected ? KholoColors.lavender : KholoColors.cream,
-                  borderRadius: BorderRadius.circular(14),
+                  color: isSelected
+                      ? context.kTint(KholoColors.magenta, lightAlpha: 0.18, darkAlpha: 0.3)
+                      : context.kCard,
+                  borderRadius: BorderRadius.circular(16),
                   border: Border.all(
-                    color: isSelected ? KholoColors.plum : KholoColors.divider,
+                    color: isSelected ? KholoColors.magenta : context.kDivider,
                     width: isSelected ? 2 : 1,
                   ),
                 ),
@@ -387,6 +468,16 @@ class _MoodSelector extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(m.emoji, style: const TextStyle(fontSize: 18)),
+                    const SizedBox(height: 2),
+                    Text(
+                      m.displayName,
+                      style: TextStyle(
+                        fontSize: 9,
+                        color: isSelected
+                            ? (context.isDark ? KholoColors.magenta : KholoColors.plum)
+                            : context.kInkMuted,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -414,15 +505,17 @@ class _SymptomChips extends StatelessWidget {
           label: Text(s),
           selected: isSelected,
           onSelected: (_) => onToggle(s),
-          selectedColor: KholoColors.lavenderLight,
+          selectedColor: context.kTint(KholoColors.lavender),
           checkmarkColor: KholoColors.plum,
           labelStyle: TextStyle(
             fontSize: 12,
-            color: isSelected ? KholoColors.plum : KholoColors.inkMuted,
+            color: isSelected
+                ? (context.isDark ? KholoColors.blush : KholoColors.plum)
+                : context.kInkMuted,
           ),
-          backgroundColor: KholoColors.cream,
+          backgroundColor: context.kCard,
           side: BorderSide(
-            color: isSelected ? KholoColors.lavender : KholoColors.divider,
+            color: isSelected ? KholoColors.lavender : context.kDivider,
           ),
         );
       }).toList(),

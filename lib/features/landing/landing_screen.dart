@@ -1,16 +1,23 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../app/theme/colors.dart';
 import '../../core/models/app_update.dart';
-import '../../core/services/update_service.dart';
 import '../../core/services/notification_service.dart';
+import '../../core/services/update_service.dart';
+import '../../shared/widgets/kholo_glowing_logo.dart';
 import '../../shared/widgets/update_banner.dart';
-import '../../shared/widgets/kholo_animated_loader.dart';
 
-/// Public landing page — KHOLO's first impression.
-/// Asymmetric editorial layout with floating phase card, dual CTA,
-/// and a subtle shifting colour orb animation.
+/// ─── KHOLO LUXURY EMOTIONAL LANDING & SPLASH EXPERIENCE ───────────────────
+///
+/// Features:
+/// 1. Blooming glowing logo with dynamic star sparkles.
+/// 2. Shifting chromatic radiance orb with luxury gradients.
+/// 3. In-App live update banner with SHA-256 verification status.
+/// 4. Responsive mobile & wide desktop-tablet layout.
+/// 5. Full light & dark luxury mode support.
+/// ────────────────────────────────────────────────────────────────────────────
 class LandingScreen extends StatefulWidget {
   const LandingScreen({super.key});
 
@@ -20,10 +27,10 @@ class LandingScreen extends StatefulWidget {
 
 class _LandingScreenState extends State<LandingScreen>
     with SingleTickerProviderStateMixin {
-  late AnimationController _orbCtrl;
-  late Animation<Alignment> _orbAlign;
+  late final AnimationController _orbCtrl;
+  late final Animation<Alignment> _orbAlign;
   AppUpdate? _pendingUpdate;
-  int _currentVersionCode = 1;
+  int _currentVersionCode = 20;
 
   @override
   void initState() {
@@ -44,17 +51,27 @@ class _LandingScreenState extends State<LandingScreen>
 
   Future<void> _checkForUpdate() async {
     final code = await UpdateService.currentVersionCode();
+    final name = await UpdateService.currentVersionName();
     final update = await UpdateService.checkForUpdate();
-    if (mounted && update != null) {
+    if (mounted && update != null && update.isNewerThan(code, name)) {
       setState(() {
         _currentVersionCode = code;
         _pendingUpdate = update;
       });
-      await NotificationService.showUpdateNotification(
-        version: update.latestVersion,
-        versionCode: update.versionCode,
-        releaseNotes: update.releaseNotes,
+
+      final shouldNotify =
+          await UpdateService.shouldShowUpdateNotification(
+        update.versionCode,
+        remoteVersionName: update.latestVersion,
       );
+      if (shouldNotify) {
+        await NotificationService.showUpdateNotification(
+          version: update.latestVersion,
+          versionCode: update.versionCode,
+          releaseNotes: update.releaseNotes,
+        );
+        await UpdateService.recordNotificationSent(update.versionCode);
+      }
     }
   }
 
@@ -70,7 +87,7 @@ class _LandingScreenState extends State<LandingScreen>
     final isWide = size.width >= 768;
 
     return Scaffold(
-      backgroundColor: KholoColors.canvas,
+      backgroundColor: context.kCanvas,
       body: Stack(
         children: [
           // Shifting colour orb background
@@ -79,15 +96,18 @@ class _LandingScreenState extends State<LandingScreen>
             builder: (_, __) => Align(
               alignment: _orbAlign.value,
               child: Container(
-                width: size.width * 0.75,
-                height: size.width * 0.75,
+                width: size.width * 0.8,
+                height: size.width * 0.8,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   gradient: RadialGradient(
                     colors: [
-                      KholoColors.magenta.withValues(alpha: 0.16),
-                      KholoColors.blush.withValues(alpha: 0.22),
-                      KholoColors.warmGold.withValues(alpha: 0.14),
+                      KholoColors.magenta.withValues(
+                          alpha: context.isDark ? 0.22 : 0.14),
+                      KholoColors.blush.withValues(
+                          alpha: context.isDark ? 0.16 : 0.20),
+                      KholoColors.warmGold.withValues(
+                          alpha: context.isDark ? 0.10 : 0.12),
                       Colors.transparent,
                     ],
                     stops: const [0.0, 0.4, 0.7, 1.0],
@@ -106,7 +126,8 @@ class _LandingScreenState extends State<LandingScreen>
                     onShop: _goShop,
                     pendingUpdate: _pendingUpdate,
                     currentVersionCode: _currentVersionCode,
-                    onDismissUpdate: () => setState(() => _pendingUpdate = null),
+                    onDismissUpdate: () =>
+                        setState(() => _pendingUpdate = null),
                   ),
           ),
         ],
@@ -114,9 +135,13 @@ class _LandingScreenState extends State<LandingScreen>
     );
   }
 
-  void _goAuth() => context.go('/auth');
+  void _goAuth() {
+    HapticFeedback.selectionClick();
+    context.go('/auth');
+  }
+
   void _goShop() {
-    // If not signed in, go to auth first; shop requires account.
+    HapticFeedback.selectionClick();
     context.go('/auth');
   }
 }
@@ -128,7 +153,7 @@ class _NarrowLayout extends StatelessWidget {
     required this.onGetStarted,
     required this.onShop,
     this.pendingUpdate,
-    this.currentVersionCode = 1,
+    this.currentVersionCode = 20,
     this.onDismissUpdate,
   });
   final VoidCallback onGetStarted;
@@ -162,7 +187,7 @@ class _NarrowLayout extends StatelessWidget {
           // Glowing Blooming Hero Logo
           const Center(
             child: KholoGlowingLogo(
-              size: 90,
+              size: 96,
               showSparkles: true,
               showHalo: true,
             ),
@@ -175,14 +200,17 @@ class _NarrowLayout extends StatelessWidget {
             style: GoogleFonts.playfairDisplay(
               fontSize: 34,
               fontWeight: FontWeight.w700,
-              color: KholoColors.ink,
+              color: context.kInk,
               height: 1.2,
             ),
           ),
           const SizedBox(height: 16),
           Text(
             'Track your cycle, support your pregnancy, log your baby\'s growth, and discover curated care essentials — all in one trusted space.',
-            style: tt.bodyMedium?.copyWith(color: KholoColors.inkMuted, height: 1.6),
+            style: tt.bodyMedium?.copyWith(
+              color: context.kInkMuted,
+              height: 1.6,
+            ),
           ),
           const SizedBox(height: 32),
 
@@ -219,12 +247,12 @@ class _NarrowLayout extends StatelessWidget {
             padding: const EdgeInsets.only(bottom: 12.0, top: 8.0),
             child: Center(
               child: Text(
-                'Developed by Azmain',
+                'Developed by Azmain • KHOLO Luxury Health',
                 style: TextStyle(
                   fontSize: 11,
                   letterSpacing: 0.8,
                   fontWeight: FontWeight.w500,
-                  color: Theme.of(context).textTheme.bodySmall?.color?.withValues(alpha: 0.5) ?? Colors.grey,
+                  color: context.kInkSubtle.withValues(alpha: 0.6),
                 ),
               ),
             ),
@@ -265,14 +293,17 @@ class _WideLayout extends StatelessWidget {
                     style: GoogleFonts.playfairDisplay(
                       fontSize: 40,
                       fontWeight: FontWeight.w700,
-                      color: KholoColors.ink,
+                      color: context.kInk,
                       height: 1.15,
                     ),
                   ),
                   const SizedBox(height: 20),
                   Text(
                     'Track your cycle, support your pregnancy, log baby milestones, and discover curated care essentials — all in one trusted, private space.',
-                    style: tt.bodyLarge?.copyWith(color: KholoColors.inkMuted, height: 1.6),
+                    style: tt.bodyLarge?.copyWith(
+                      color: context.kInkMuted,
+                      height: 1.6,
+                    ),
                   ),
                   const SizedBox(height: 32),
                   Wrap(
@@ -297,12 +328,12 @@ class _WideLayout extends StatelessWidget {
                   Padding(
                     padding: const EdgeInsets.only(bottom: 12.0, top: 8.0),
                     child: Text(
-                      'Developed by Azmain',
+                      'Developed by Azmain • KHOLO Luxury Health',
                       style: TextStyle(
                         fontSize: 11,
                         letterSpacing: 0.8,
                         fontWeight: FontWeight.w500,
-                        color: Theme.of(context).textTheme.bodySmall?.color?.withValues(alpha: 0.5) ?? Colors.grey,
+                        color: context.kInkSubtle.withValues(alpha: 0.6),
                       ),
                     ),
                   ),
@@ -356,7 +387,7 @@ class _KholoWordmark extends StatelessWidget {
           style: GoogleFonts.playfairDisplay(
             fontSize: 22,
             fontWeight: FontWeight.w700,
-            color: KholoColors.ink,
+            color: context.kInk,
             letterSpacing: 2,
           ),
         ),
@@ -373,12 +404,17 @@ class _FloatingPhasePreview extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: KholoColors.lavenderLight,
+        color: context.isDark ? context.kCardElevated : KholoColors.lavenderLight,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: KholoColors.lavender.withValues(alpha: 0.4), width: 1.5),
+        border: Border.all(
+          color: (context.isDark ? KholoColors.magenta : KholoColors.lavender)
+              .withValues(alpha: 0.4),
+          width: 1.5,
+        ),
         boxShadow: [
           BoxShadow(
-            color: KholoColors.wine.withValues(alpha: 0.08),
+            color: KholoColors.wine
+                .withValues(alpha: context.isDark ? 0.25 : 0.08),
             blurRadius: 24,
             offset: const Offset(0, 8),
           ),
@@ -406,13 +442,13 @@ class _FloatingPhasePreview extends StatelessWidget {
                   children: [
                     Text(
                       'Follicular phase',
-                      style: tt.titleLarge?.copyWith(color: KholoColors.ink),
+                      style: tt.titleLarge?.copyWith(color: context.kInk),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
                     Text(
                       'Energy may be rising',
-                      style: tt.bodySmall?.copyWith(color: KholoColors.inkMuted),
+                      style: tt.bodySmall?.copyWith(color: context.kInkMuted),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -445,9 +481,9 @@ class _FloatingPhasePreview extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.8),
+              color: context.kCard.withValues(alpha: 0.85),
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: KholoColors.divider),
+              border: Border.all(color: context.kDivider),
             ),
             child: Row(
               children: [
@@ -457,7 +493,7 @@ class _FloatingPhasePreview extends StatelessWidget {
                 Expanded(
                   child: Text(
                     'Estimated fertile window starts in 4 days*',
-                    style: tt.bodySmall?.copyWith(color: KholoColors.inkMuted),
+                    style: tt.bodySmall?.copyWith(color: context.kInkMuted),
                   ),
                 ),
               ],
@@ -466,7 +502,7 @@ class _FloatingPhasePreview extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             '* Estimates only — not medical advice.',
-            style: tt.labelSmall?.copyWith(color: KholoColors.inkSubtle),
+            style: tt.labelSmall?.copyWith(color: context.kInkSubtle),
           ),
         ],
       ),
@@ -484,20 +520,25 @@ class _PreviewChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.85),
+        color: context.kCard.withValues(alpha: 0.85),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: KholoColors.divider),
+        border: Border.all(color: context.kDivider),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 11, color: KholoColors.wine),
+          Icon(icon,
+              size: 11,
+              color: context.isDark ? KholoColors.magenta : KholoColors.wine),
           const SizedBox(width: 4),
-          Text(label,
-              style: const TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w500,
-                  color: KholoColors.inkMuted)),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w500,
+              color: context.kInkMuted,
+            ),
+          ),
         ],
       ),
     );
@@ -527,18 +568,32 @@ class _FeaturePillars extends StatelessWidget {
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: KholoColors.lavenderLight,
+                  color: context.isDark
+                      ? context.kCardElevated
+                      : KholoColors.lavenderLight,
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Icon(p.$1, color: KholoColors.plum, size: 20),
+                child: Icon(
+                  p.$1,
+                  color: context.isDark
+                      ? KholoColors.magenta
+                      : KholoColors.plum,
+                  size: 20,
+                ),
               ),
               const SizedBox(width: 14),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(p.$2, style: tt.titleMedium),
-                    Text(p.$3, style: tt.bodySmall?.copyWith(color: KholoColors.inkMuted)),
+                    Text(
+                      p.$2,
+                      style: tt.titleMedium?.copyWith(color: context.kInk),
+                    ),
+                    Text(
+                      p.$3,
+                      style: tt.bodySmall?.copyWith(color: context.kInkMuted),
+                    ),
                   ],
                 ),
               ),
@@ -558,14 +613,14 @@ class _Disclaimer extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: KholoColors.cream,
+        color: context.isDark ? context.kCardElevated : KholoColors.cream,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: KholoColors.divider),
+        border: Border.all(color: context.kDivider),
       ),
       child: Text(
         'KHOLO provides self-tracking, estimates, and educational content. It does not diagnose medical conditions or replace clinical care. All cycle and fertility predictions are estimates.',
         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: KholoColors.inkSubtle,
+              color: context.kInkSubtle,
               height: 1.5,
             ),
       ),

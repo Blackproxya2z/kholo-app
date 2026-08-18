@@ -1,11 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../app/theme/colors.dart';
 import '../../core/models/product.dart';
 import '../../core/providers/providers.dart';
 
-/// Product detail screen with image, info, quantity picker, and add-to-cart.
+/// ─── LUXURY PRODUCT DETAIL SCREEN ──────────────────────────────────────────
+///
+/// Features:
+/// 1. Hero visual presentation with category icon and badges.
+/// 2. Clear transparent pricing in Bangladeshi Taka (৳ BDT).
+/// 3. In-depth description, usage guidance, and ingredient breakdown.
+/// 4. Honest curation guarantee (no fake endorsements).
+/// 5. Quantity selector with add-to-cart bottom sheet and live cart badges.
+/// 6. Full Dark & Light luxury theme tokens.
+/// ────────────────────────────────────────────────────────────────────────────
 class ProductDetailScreen extends ConsumerStatefulWidget {
   const ProductDetailScreen({super.key, required this.productId});
   final String productId;
@@ -26,8 +37,13 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
 
     if (product.isEmpty) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Product')),
-        body: const Center(child: Text('Product not found.')),
+        backgroundColor: context.kCanvas,
+        appBar: AppBar(
+          title: Text('Product', style: TextStyle(color: context.kInk)),
+        ),
+        body: Center(
+          child: Text('Product not found.', style: TextStyle(color: context.kInkMuted)),
+        ),
       );
     }
 
@@ -38,25 +54,31 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
     final tt = Theme.of(context).textTheme;
 
     return Scaffold(
-      backgroundColor: KholoColors.canvas,
+      backgroundColor: context.kCanvas,
       body: CustomScrollView(
         slivers: [
           // Hero image area
           SliverAppBar(
             expandedHeight: 260,
             pinned: true,
-            backgroundColor: KholoColors.lavenderLight,
-            foregroundColor: KholoColors.ink,
+            backgroundColor: context.isDark
+                ? context.kCardElevated
+                : KholoColors.lavenderLight,
+            foregroundColor: context.kInk,
             leading: IconButton(
               icon: Container(
                 padding: const EdgeInsets.all(8),
-                decoration: const BoxDecoration(
-                  color: Colors.white,
+                decoration: BoxDecoration(
+                  color: context.kCard,
                   shape: BoxShape.circle,
+                  border: Border.all(color: context.kDivider),
                 ),
-                child: const Icon(Icons.arrow_back_rounded, size: 18),
+                child: Icon(Icons.arrow_back_rounded, size: 18, color: context.kInk),
               ),
-              onPressed: () => context.go('/shop'),
+              onPressed: () {
+                HapticFeedback.selectionClick();
+                context.go('/shop');
+              },
             ),
             actions: [
               Stack(
@@ -64,13 +86,18 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                   IconButton(
                     icon: Container(
                       padding: const EdgeInsets.all(8),
-                      decoration: const BoxDecoration(
-                        color: Colors.white,
+                      decoration: BoxDecoration(
+                        color: context.kCard,
                         shape: BoxShape.circle,
+                        border: Border.all(color: context.kDivider),
                       ),
-                      child: const Icon(Icons.shopping_bag_outlined, size: 18),
+                      child: Icon(Icons.shopping_bag_outlined,
+                          size: 18, color: context.kInk),
                     ),
-                    onPressed: () => context.go('/cart'),
+                    onPressed: () {
+                      HapticFeedback.selectionClick();
+                      context.go('/cart');
+                    },
                     tooltip: 'View cart',
                   ),
                   if (cartCount > 0)
@@ -88,7 +115,9 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                           child: Text(
                             '$cartCount',
                             style: const TextStyle(
-                                color: Colors.white, fontSize: 8, fontWeight: FontWeight.w700),
+                                color: Colors.white,
+                                fontSize: 8,
+                                fontWeight: FontWeight.w700),
                           ),
                         ),
                       ),
@@ -98,12 +127,16 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
             ],
             flexibleSpace: FlexibleSpaceBar(
               background: Container(
-                color: KholoColors.lavenderLight,
+                color: context.isDark
+                    ? context.kCardElevated
+                    : KholoColors.lavenderLight,
                 child: Center(
                   child: Icon(
                     _categoryIcon(p.category),
-                    color: KholoColors.plum,
-                    size: 80,
+                    color: context.isDark
+                        ? KholoColors.magenta
+                        : KholoColors.plum,
+                    size: 84,
                   ),
                 ),
               ),
@@ -119,44 +152,68 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                 children: [
                   // Category tag
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
                     decoration: BoxDecoration(
-                      color: KholoColors.lavenderLight,
+                      color: context.isDark
+                          ? context.kCardElevated
+                          : KholoColors.lavenderLight,
                       borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: context.kDivider),
                     ),
                     child: Text(
                       p.category,
-                      style: tt.labelMedium?.copyWith(color: KholoColors.plum),
+                      style: tt.labelMedium?.copyWith(
+                        color: context.isDark
+                            ? KholoColors.blush
+                            : KholoColors.plum,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 12),
 
                   // Title & price
-                  Text(p.title, style: tt.displaySmall),
+                  Text(
+                    p.title,
+                    style: GoogleFonts.playfairDisplay(
+                      fontSize: 26,
+                      fontWeight: FontWeight.w700,
+                      color: context.kInk,
+                    ),
+                  ),
                   const SizedBox(height: 8),
                   Text(
                     '৳${p.priceBdt.toInt()}',
-                    style: tt.headlineMedium?.copyWith(color: KholoColors.plum),
+                    style: GoogleFonts.inter(
+                      fontSize: 24,
+                      fontWeight: FontWeight.w800,
+                      color: context.isDark
+                          ? KholoColors.magenta
+                          : KholoColors.plum,
+                    ),
                   ),
 
                   if (!p.isAvailable) ...[
                     const SizedBox(height: 8),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
-                        color: KholoColors.cream,
+                        color: context.kCardElevated,
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: KholoColors.divider),
+                        border: Border.all(color: context.kDivider),
                       ),
                       child: Text(
                         'Currently unavailable — coming soon',
-                        style: tt.bodySmall?.copyWith(color: KholoColors.inkMuted),
+                        style: tt.bodySmall
+                            ?.copyWith(color: context.kInkMuted),
                       ),
                     ),
                   ],
 
                   const SizedBox(height: 20),
-                  const Divider(),
+                  Divider(color: context.kDivider),
                   const SizedBox(height: 16),
 
                   // Description
@@ -169,20 +226,38 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
 
                   // Ingredients / materials
                   if (p.ingredients.isNotEmpty) ...[
-                    Text('Ingredients / materials',
-                        style: tt.titleMedium?.copyWith(color: KholoColors.plum)),
+                    Text(
+                      'Ingredients / materials',
+                      style: GoogleFonts.playfairDisplay(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w700,
+                        color: context.isDark
+                            ? KholoColors.blush
+                            : KholoColors.plum,
+                      ),
+                    ),
                     const SizedBox(height: 8),
                     ...p.ingredients.map((ing) => Padding(
-                          padding: const EdgeInsets.only(bottom: 4),
+                          padding: const EdgeInsets.only(bottom: 6),
                           child: Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Icon(Icons.circle, size: 6, color: KholoColors.lavender),
+                              Icon(
+                                Icons.circle,
+                                size: 6,
+                                color: context.isDark
+                                    ? KholoColors.magenta
+                                    : KholoColors.lavender,
+                              ),
                               const SizedBox(width: 8),
                               Expanded(
-                                child: Text(ing,
-                                    style: tt.bodySmall
-                                        ?.copyWith(color: KholoColors.inkMuted, height: 1.5)),
+                                child: Text(
+                                  ing,
+                                  style: tt.bodySmall?.copyWith(
+                                    color: context.kInkMuted,
+                                    height: 1.5,
+                                  ),
+                                ),
                               ),
                             ],
                           ),
@@ -196,15 +271,17 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                       spacing: 8,
                       runSpacing: 6,
                       children: p.tags.map((t) => Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 4),
                             decoration: BoxDecoration(
-                              color: KholoColors.cream,
+                              color: context.kCard,
                               borderRadius: BorderRadius.circular(20),
-                              border: Border.all(color: KholoColors.divider),
+                              border: Border.all(color: context.kDivider),
                             ),
                             child: Text(
                               t,
-                              style: tt.labelSmall?.copyWith(color: KholoColors.inkMuted),
+                              style: tt.labelSmall
+                                  ?.copyWith(color: context.kInkMuted),
                             ),
                           )).toList(),
                     ),
@@ -215,20 +292,23 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                   Container(
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
-                      color: KholoColors.cream,
+                      color: context.kCard,
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: KholoColors.divider),
+                      border: Border.all(color: context.kDivider),
                     ),
                     child: Row(
                       children: [
-                        const Icon(Icons.shield_outlined,
-                            color: KholoColors.plum, size: 16),
+                        Icon(Icons.shield_outlined,
+                            color: context.isDark
+                                ? KholoColors.magenta
+                                : KholoColors.plum,
+                            size: 16),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            'KHOLO does not display fabricated ratings, reviews, or endorsements.',
-                            style: tt.bodySmall
-                                ?.copyWith(color: KholoColors.inkMuted, height: 1.4),
+                            'KHOLO does not display fabricated ratings, reviews, or sponsored endorsements.',
+                            style: tt.bodySmall?.copyWith(
+                                color: context.kInkMuted, height: 1.4),
                           ),
                         ),
                       ],
@@ -248,8 +328,12 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
               product: p,
               qty: _qty,
               cartCount: cartCount,
-              onQtyChanged: (v) => setState(() => _qty = v),
+              onQtyChanged: (v) {
+                HapticFeedback.selectionClick();
+                setState(() => _qty = v);
+              },
               onAdd: () {
+                HapticFeedback.mediumImpact();
                 ref
                     .read(cartProvider.notifier)
                     .setItem(p.id, cartCount + _qty);
@@ -261,7 +345,9 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                       const SizedBox(width: 8),
                       Text('$_qty × "${p.title}" added to cart'),
                     ]),
-                    backgroundColor: KholoColors.plum,
+                    backgroundColor: context.isDark
+                        ? KholoColors.magenta
+                        : KholoColors.plum,
                     behavior: SnackBarBehavior.floating,
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12)),
@@ -310,9 +396,22 @@ class _InfoSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(title, style: tt.titleMedium?.copyWith(color: KholoColors.plum)),
+        Text(
+          title,
+          style: GoogleFonts.playfairDisplay(
+            fontSize: 17,
+            fontWeight: FontWeight.w700,
+            color: context.isDark ? KholoColors.blush : KholoColors.plum,
+          ),
+        ),
         const SizedBox(height: 8),
-        Text(body, style: tt.bodyMedium?.copyWith(color: KholoColors.inkMuted, height: 1.6)),
+        Text(
+          body,
+          style: tt.bodyMedium?.copyWith(
+            color: context.kInkMuted,
+            height: 1.6,
+          ),
+        ),
       ],
     );
   }
@@ -340,32 +439,51 @@ class _AddToCartBar extends StatelessWidget {
     return Container(
       padding: EdgeInsets.fromLTRB(
           20, 12, 20, MediaQuery.of(context).padding.bottom + 12),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        border: Border(top: BorderSide(color: KholoColors.divider)),
+      decoration: BoxDecoration(
+        color: context.kCard,
+        border: Border(top: BorderSide(color: context.kDivider)),
+        boxShadow: [
+          BoxShadow(
+            color: KholoColors.wine
+                .withValues(alpha: context.isDark ? 0.2 : 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, -2),
+          ),
+        ],
       ),
       child: Row(
         children: [
           // Quantity selector
           Container(
             decoration: BoxDecoration(
-              color: KholoColors.cream,
+              color: context.kCardElevated,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: KholoColors.divider),
+              border: Border.all(color: context.kDivider),
             ),
             child: Row(
               children: [
                 IconButton(
                   icon: const Icon(Icons.remove_rounded, size: 18),
                   onPressed: qty > 1 ? () => onQtyChanged(qty - 1) : null,
-                  color: KholoColors.plum,
+                  color: context.isDark
+                      ? KholoColors.blush
+                      : KholoColors.plum,
                 ),
-                Text('$qty',
-                    style: tt.titleMedium?.copyWith(color: KholoColors.plum)),
+                Text(
+                  '$qty',
+                  style: tt.titleMedium?.copyWith(
+                    color: context.isDark
+                        ? KholoColors.blush
+                        : KholoColors.plum,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
                 IconButton(
                   icon: const Icon(Icons.add_rounded, size: 18),
                   onPressed: () => onQtyChanged(qty + 1),
-                  color: KholoColors.plum,
+                  color: context.isDark
+                      ? KholoColors.blush
+                      : KholoColors.plum,
                 ),
               ],
             ),
@@ -374,10 +492,19 @@ class _AddToCartBar extends StatelessWidget {
           Expanded(
             child: ElevatedButton(
               onPressed: onAdd,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: context.isDark
+                    ? KholoColors.magenta
+                    : KholoColors.wine,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16)),
+              ),
               child: Text(
                 cartCount > 0
                     ? 'Add ৳${(product.priceBdt * qty).toInt()}'
                     : 'Add to cart · ৳${(product.priceBdt * qty).toInt()}',
+                style: const TextStyle(fontWeight: FontWeight.w700),
               ),
             ),
           ),

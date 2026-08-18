@@ -3,8 +3,15 @@ import '../../app/theme/colors.dart';
 import '../../core/models/app_update.dart';
 import '../../core/services/update_service.dart';
 
-/// Full-screen update dialog showing release notes, SHA-256 verification indicator,
-/// and in-place upgrade progress.
+/// ─── LUXURY IN-APP UPDATE DIALOG ───────────────────────────────────────────
+///
+/// Features:
+/// 1. Clear release notes and file size indicator.
+/// 2. Resumable chunked progress indicator with retry mechanism.
+/// 3. SHA-256 cryptographic verification badge.
+/// 4. User-friendly error messages without raw technical traces.
+/// 5. Cancel / Later button (for non-mandatory updates) and Retry CTA.
+/// ────────────────────────────────────────────────────────────────────────────
 class UpdateDialog extends StatefulWidget {
   const UpdateDialog({
     super.key,
@@ -42,17 +49,21 @@ class _UpdateDialogState extends State<UpdateDialog> {
   String _statusText = 'Downloading...';
   String? _errorMsg;
 
-  bool get _isMandatory => widget.update.isMandatory(widget.currentVersionCode);
+  bool get _isMandatory =>
+      widget.update.isMandatory(widget.currentVersionCode);
 
   @override
   Widget build(BuildContext context) {
     final tt = Theme.of(context).textTheme;
 
     return PopScope(
-      canPop: !_isMandatory && _phase != _Phase.downloading && _phase != _Phase.verifying,
+      canPop: !_isMandatory &&
+          _phase != _Phase.downloading &&
+          _phase != _Phase.verifying,
       child: Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-        backgroundColor: KholoColors.canvas,
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+        backgroundColor: context.kCard,
         child: Padding(
           padding: const EdgeInsets.all(28),
           child: Column(
@@ -87,15 +98,45 @@ class _UpdateDialogState extends State<UpdateDialog> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          _isMandatory ? 'Required Update' : 'New Version Available',
+                          _isMandatory
+                              ? 'Required Update'
+                              : 'New Version Available',
                           style: tt.titleLarge?.copyWith(
                             fontWeight: FontWeight.w700,
-                            color: KholoColors.ink,
+                            color: context.kInk,
                           ),
                         ),
-                        Text(
-                          'v${widget.update.latestVersion} (Build ${widget.update.versionCode})',
-                          style: tt.bodySmall?.copyWith(color: KholoColors.inkMuted),
+                        Row(
+                          children: [
+                            Text(
+                              'v${widget.update.latestVersion} (Build ${widget.update.versionCode})',
+                              style: tt.bodySmall
+                                  ?.copyWith(color: context.kInkMuted),
+                            ),
+                            if (widget.update.formattedFileSize != null) ...[
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: context.isDark
+                                      ? context.kCardElevated
+                                      : KholoColors.lavenderLight,
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Text(
+                                  widget.update.formattedFileSize!,
+                                  style: tt.labelSmall?.copyWith(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w700,
+                                    color: context.isDark
+                                        ? KholoColors.blush
+                                        : KholoColors.plum,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
                         ),
                       ],
                     ),
@@ -109,7 +150,8 @@ class _UpdateDialogState extends State<UpdateDialog> {
               if (widget.update.apkSha256 != null)
                 Container(
                   margin: const EdgeInsets.only(bottom: 16),
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   decoration: BoxDecoration(
                     color: const Color(0xFFE8F5E9),
                     borderRadius: BorderRadius.circular(10),
@@ -135,19 +177,23 @@ class _UpdateDialogState extends State<UpdateDialog> {
 
               // Release notes
               if (widget.update.releaseNotes.isNotEmpty) ...[
-                Text("What's new", style: tt.titleSmall?.copyWith(color: KholoColors.inkMuted)),
+                Text("What's new",
+                    style: tt.titleSmall?.copyWith(color: context.kInkMuted)),
                 const SizedBox(height: 8),
                 Container(
                   constraints: const BoxConstraints(maxHeight: 140),
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
-                    color: KholoColors.lavenderLight,
+                    color: context.isDark
+                        ? context.kCardElevated
+                        : KholoColors.lavenderLight,
                     borderRadius: BorderRadius.circular(14),
                   ),
                   child: SingleChildScrollView(
                     child: Text(
                       widget.update.releaseNotes,
-                      style: tt.bodySmall?.copyWith(height: 1.6, color: KholoColors.ink),
+                      style: tt.bodySmall
+                          ?.copyWith(height: 1.6, color: context.kInk),
                     ),
                   ),
                 ),
@@ -161,15 +207,24 @@ class _UpdateDialogState extends State<UpdateDialog> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(_statusText,
+                    Expanded(
+                      child: Text(
+                        _statusText,
                         style: tt.bodySmall?.copyWith(
-                          color: KholoColors.ink,
+                          color: context.kInk,
                           fontWeight: FontWeight.w600,
-                        )),
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
                     if (_phase == _Phase.downloading)
                       Text('${(_progress * 100).toStringAsFixed(0)}%',
                           style: tt.bodySmall?.copyWith(
-                              color: KholoColors.plum, fontWeight: FontWeight.w700)),
+                              color: context.isDark
+                                  ? KholoColors.magenta
+                                  : KholoColors.plum,
+                              fontWeight: FontWeight.w700)),
                   ],
                 ),
                 const SizedBox(height: 8),
@@ -178,30 +233,50 @@ class _UpdateDialogState extends State<UpdateDialog> {
                   child: LinearProgressIndicator(
                     value: _phase == _Phase.downloading ? _progress : null,
                     minHeight: 10,
-                    backgroundColor: KholoColors.lavenderLight,
-                    valueColor: const AlwaysStoppedAnimation<Color>(KholoColors.wine),
+                    backgroundColor: context.isDark
+                        ? context.kCardElevated
+                        : KholoColors.lavenderLight,
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      context.isDark
+                          ? KholoColors.magenta
+                          : KholoColors.wine,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 20),
               ],
 
-              // Error message
+              // User-Friendly Error message
               if (_errorMsg != null) ...[
                 Container(
-                  padding: const EdgeInsets.all(12),
+                  padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFFDE8E8),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFFF87171)),
+                    color: context.isDark
+                        ? const Color(0xFF3B1824)
+                        : const Color(0xFFFDE8E8),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: context.isDark
+                          ? const Color(0xFFF87171).withValues(alpha: 0.4)
+                          : const Color(0xFFF87171),
+                    ),
                   ),
                   child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Icon(Icons.security_rounded, color: KholoColors.error, size: 18),
-                      const SizedBox(width: 8),
+                      const Icon(Icons.wifi_off_rounded,
+                          color: KholoColors.error, size: 20),
+                      const SizedBox(width: 10),
                       Expanded(
                         child: Text(
                           _errorMsg!,
-                          style: tt.bodySmall?.copyWith(color: KholoColors.error),
+                          style: tt.bodySmall?.copyWith(
+                            color: context.isDark
+                                ? const Color(0xFFFFB3B3)
+                                : KholoColors.error,
+                            height: 1.4,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
                       ),
                     ],
@@ -234,7 +309,9 @@ class _UpdateDialogState extends State<UpdateDialog> {
                           ? null
                           : _startDownloadAndInstall,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: KholoColors.wine,
+                        backgroundColor: context.isDark
+                            ? KholoColors.magenta
+                            : KholoColors.wine,
                         foregroundColor: Colors.white,
                       ),
                       child: (_phase == _Phase.downloading ||
@@ -246,7 +323,13 @@ class _UpdateDialogState extends State<UpdateDialog> {
                               child: CircularProgressIndicator(
                                   strokeWidth: 2, color: Colors.white),
                             )
-                          : Text(_isMandatory ? 'Update Now (Required)' : 'Update Now'),
+                          : Text(
+                              _phase == _Phase.error
+                                  ? 'Retry Download'
+                                  : (_isMandatory
+                                      ? 'Update Now (Required)'
+                                      : 'Update Now'),
+                            ),
                     ),
                   ),
                 ],
@@ -268,8 +351,12 @@ class _UpdateDialogState extends State<UpdateDialog> {
 
     try {
       final path = await UpdateService.downloadApk(
-        widget.update.apkUrl,
+        widget.update.effectiveApkUrl,
+        mirrorUrls: widget.update.mirrorUrls,
         expectedSha256: widget.update.apkSha256,
+        expectedFileSize: widget.update.fileSize,
+        targetVersion: widget.update.latestVersion,
+        targetVersionCode: widget.update.versionCode,
         onProgress: (p) {
           if (mounted) {
             setState(() {
@@ -292,20 +379,15 @@ class _UpdateDialogState extends State<UpdateDialog> {
 
       if (!mounted) return;
 
-      if (path == null) {
-        setState(() {
-          _phase = _Phase.error;
-          _errorMsg = 'Download failed or permission denied. Please try again.';
-        });
-        return;
-      }
-
       setState(() {
         _phase = _Phase.installing;
         _statusText = 'Launching Package Installer...';
       });
 
-      await UpdateService.installApk(path);
+      final installed = await UpdateService.installApk(path);
+      if (installed) {
+        await UpdateService.recordUpdateCompleted(widget.update.versionCode);
+      }
 
       if (mounted && !_isMandatory) {
         Navigator.pop(context);
@@ -317,11 +399,19 @@ class _UpdateDialogState extends State<UpdateDialog> {
           _errorMsg = e.message;
         });
       }
-    } catch (e) {
+    } on UpdateDownloadException catch (e) {
       if (mounted) {
         setState(() {
           _phase = _Phase.error;
-          _errorMsg = 'Update failed: $e';
+          _errorMsg = e.userMessage;
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _phase = _Phase.error;
+          _errorMsg =
+              'Update download failed. Please check your internet connection and try again.';
         });
       }
     }

@@ -26,11 +26,11 @@ class CartScreen extends ConsumerWidget {
     }
 
     return Scaffold(
-      backgroundColor: KholoColors.canvas,
+      backgroundColor: context.kCanvas,
       appBar: AppBar(
-        title: const Text('My cart'),
+        title: Text('My cart', style: TextStyle(color: context.kInk)),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded),
+          icon: Icon(Icons.arrow_back_rounded, color: context.kInk),
           onPressed: () => context.go('/shop'),
         ),
         actions: [
@@ -63,9 +63,9 @@ class CartScreen extends ConsumerWidget {
                       Container(
                         padding: const EdgeInsets.all(20),
                         decoration: BoxDecoration(
-                          color: KholoColors.cream,
+                          color: context.kSurface,
                           borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: KholoColors.divider),
+                          border: Border.all(color: context.kDivider),
                         ),
                         child: Column(
                           children: [
@@ -86,13 +86,13 @@ class CartScreen extends ConsumerWidget {
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: KholoColors.lavenderLight,
+                          color: context.kTint(KholoColors.lavender, lightAlpha: 0.2, darkAlpha: 0.25),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text(
                           'All prices are in Bangladeshi Taka (৳ BDT). Final price including delivery will be confirmed at checkout.',
                           style: tt.bodySmall
-                              ?.copyWith(color: KholoColors.inkMuted, height: 1.5),
+                              ?.copyWith(color: context.kInkMuted, height: 1.5),
                         ),
                       ),
                     ],
@@ -102,9 +102,9 @@ class CartScreen extends ConsumerWidget {
                 Container(
                   padding: EdgeInsets.fromLTRB(
                       20, 12, 20, MediaQuery.of(context).padding.bottom + 12),
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
-                    border: Border(top: BorderSide(color: KholoColors.divider)),
+                  decoration: BoxDecoration(
+                    color: context.kCard,
+                    border: Border(top: BorderSide(color: context.kDivider)),
                   ),
                   child: SizedBox(
                     width: double.infinity,
@@ -144,7 +144,7 @@ class _EmptyCart extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               'Browse care essentials in the shop.',
-              style: tt.bodyMedium?.copyWith(color: KholoColors.inkMuted),
+              style: tt.bodyMedium?.copyWith(color: context.kInkMuted),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 24),
@@ -179,9 +179,9 @@ class _CartLineItem extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: KholoColors.cream,
+        color: context.kSurface,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: KholoColors.divider),
+        border: Border.all(color: context.kDivider),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -191,10 +191,11 @@ class _CartLineItem extends StatelessWidget {
             width: 60,
             height: 60,
             decoration: BoxDecoration(
-              color: KholoColors.lavenderLight,
+              color: context.kTint(KholoColors.lavender, lightAlpha: 0.2, darkAlpha: 0.25),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: const Icon(Icons.spa_outlined, color: KholoColors.wine, size: 28),
+            child: Icon(Icons.spa_outlined,
+                color: context.isDark ? KholoColors.magenta : KholoColors.wine, size: 28),
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -207,7 +208,7 @@ class _CartLineItem extends StatelessWidget {
                     overflow: TextOverflow.ellipsis),
                 const SizedBox(height: 4),
                 Text('৳${item.product.priceBdt.toInt()} each',
-                    style: tt.bodySmall?.copyWith(color: KholoColors.inkMuted)),
+                    style: tt.bodySmall?.copyWith(color: context.kInkMuted)),
                 const SizedBox(height: 10),
                 Row(
                   children: [
@@ -219,7 +220,8 @@ class _CartLineItem extends StatelessWidget {
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 10),
                       child: Text('${item.quantity}',
-                          style: tt.titleMedium?.copyWith(color: KholoColors.plum)),
+                          style: tt.titleMedium?.copyWith(
+                              color: context.isDark ? KholoColors.magenta : KholoColors.plum)),
                     ),
                     _SmallBtn(
                         icon: Icons.add_rounded,
@@ -227,7 +229,7 @@ class _CartLineItem extends StatelessWidget {
                     const Spacer(),
                     Text(
                       '৳${lineTotal.toStringAsFixed(0)}',
-                      style: tt.titleMedium?.copyWith(color: KholoColors.ink),
+                      style: tt.titleMedium?.copyWith(color: context.kInk),
                     ),
                   ],
                 ),
@@ -236,7 +238,7 @@ class _CartLineItem extends StatelessWidget {
           ),
           IconButton(
             icon: const Icon(Icons.close_rounded, size: 18),
-            color: KholoColors.inkSubtle,
+            color: context.kInkSubtle,
             onPressed: onRemove,
             tooltip: 'Remove',
           ),
@@ -259,10 +261,11 @@ class _SmallBtn extends StatelessWidget {
         width: 28,
         height: 28,
         decoration: BoxDecoration(
-          color: KholoColors.lavenderLight,
+          color: context.kTint(KholoColors.lavender, lightAlpha: 0.2, darkAlpha: 0.25),
           borderRadius: BorderRadius.circular(8),
         ),
-        child: Icon(icon, size: 14, color: KholoColors.plum),
+        child: Icon(icon, size: 14,
+            color: context.isDark ? KholoColors.magenta : KholoColors.plum),
       ),
     );
   }
@@ -284,12 +287,13 @@ class _SummaryRow extends StatelessWidget {
           label,
           style: isTotal
               ? tt.titleMedium
-              : tt.bodyMedium?.copyWith(color: KholoColors.inkMuted),
+              : tt.bodyMedium?.copyWith(color: context.kInkMuted),
         ),
         Text(
           value,
           style: isTotal
-              ? tt.titleMedium?.copyWith(color: KholoColors.plum)
+              ? tt.titleMedium?.copyWith(
+                  color: context.isDark ? KholoColors.magenta : KholoColors.plum)
               : tt.bodyMedium,
         ),
       ],

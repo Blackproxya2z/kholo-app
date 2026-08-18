@@ -43,15 +43,15 @@ extension MoodDisplay on Mood {
   String get displayName {
     switch (this) {
       case Mood.great:
-        return 'Great';
+        return 'Happy';
       case Mood.good:
-        return 'Good';
+        return 'Calm';
       case Mood.okay:
         return 'Okay';
       case Mood.low:
         return 'Low';
       case Mood.rough:
-        return 'Rough';
+        return 'Irritated';
     }
   }
 
@@ -60,13 +60,13 @@ extension MoodDisplay on Mood {
       case Mood.great:
         return '🌸';
       case Mood.good:
-        return '🌼';
+        return '🕊️';
       case Mood.okay:
         return '🌿';
       case Mood.low:
         return '🌧️';
       case Mood.rough:
-        return '🌪️';
+        return '⚡';
     }
   }
 }
@@ -74,11 +74,13 @@ extension MoodDisplay on Mood {
 /// One cycle event entry (period, check-in, or daily log).
 class CycleLog {
   final String id;
-  final DateTime eventDate;       // UTC date only; time is discarded
+  final DateTime eventDate; // UTC date only; time is discarded
   final CycleEventType eventType;
   final FlowIntensity? flow;
   final Mood? mood;
-  final List<String> symptoms;    // Free string chips from a curated list
+  final List<String> symptoms; // Free string chips from a curated list
+  final String? cervicalMucus; // Dry, Sticky, Creamy, Egg white, Watery
+  final String? intimacy; // Protected, Unprotected, None
   final String? notes;
 
   CycleLog({
@@ -88,6 +90,8 @@ class CycleLog {
     this.flow,
     this.mood,
     this.symptoms = const [],
+    this.cervicalMucus,
+    this.intimacy,
     this.notes,
   }) : id = id ?? const Uuid().v4();
 
@@ -98,6 +102,8 @@ class CycleLog {
     FlowIntensity? flow,
     Mood? mood,
     List<String>? symptoms,
+    String? cervicalMucus,
+    String? intimacy,
     String? notes,
   }) {
     return CycleLog(
@@ -107,6 +113,8 @@ class CycleLog {
       flow: flow ?? this.flow,
       mood: mood ?? this.mood,
       symptoms: symptoms ?? this.symptoms,
+      cervicalMucus: cervicalMucus ?? this.cervicalMucus,
+      intimacy: intimacy ?? this.intimacy,
       notes: notes ?? this.notes,
     );
   }
@@ -118,6 +126,8 @@ class CycleLog {
     'flow': flow?.name,
     'mood': mood?.name,
     'symptoms': symptoms,
+    'cervicalMucus': cervicalMucus,
+    'intimacy': intimacy,
     'notes': notes,
   };
 
@@ -144,6 +154,8 @@ class CycleLog {
             ?.map((s) => s as String)
             .toList() ??
         [],
+    cervicalMucus: json['cervicalMucus'] as String?,
+    intimacy: json['intimacy'] as String?,
     notes: json['notes'] as String?,
   );
 }

@@ -35,12 +35,22 @@ class KholoColors {
   static const Color tertiaryLight = Color(0xFFFFF9EC);
   static const Color tertiaryDark = Color(0xFFD49B28);
 
-  // ── Canvas & surfaces ──────────────────────────────────────────────────────
+  // ── Light Theme Base Tokens ────────────────────────────────────────────────
   static const Color canvas = Color(0xFFFFFDFC); // Soft porcelain white
   static const Color cream = Color(0xFFFFF8F2); // Warm delicate cream
   static const Color cardSurface = Color(0xFFFFF1F7); // Soft blush-tinted card surface
 
-  // ── Primary ink & typography ───────────────────────────────────────────────
+  // ── Dark Theme Luxury Base Tokens ──────────────────────────────────────────
+  static const Color darkCanvas = Color(0xFF140A12); // Deep Velvet Wine Charcoal
+  static const Color darkSurface = Color(0xFF1E101C); // Soft Warm Blackberry
+  static const Color darkCard = Color(0xFF281525); // Elevated Plum Night
+  static const Color darkCardElevated = Color(0xFF331B30); // Higher Elevation Plum
+  static const Color darkDivider = Color(0xFF40223A); // Deep Berry Divider
+  static const Color darkInk = Color(0xFFFFF0F8); // Soft Crisp Ivory Blush
+  static const Color darkInkMuted = Color(0xFFC4A7BD); // Soft Mauve
+  static const Color darkInkSubtle = Color(0xFF8E6D87); // Muted Berry
+
+  // ── Primary ink & typography (Light) ───────────────────────────────────────
   static const Color ink = Color(0xFF2C1625); // Deep rich wine-toned dark ink
   static const Color inkMuted = Color(0xFF6E4D64); // Muted berry ink
   static const Color inkSubtle = Color(0xFFA3829A); // Subtle mauve ink
@@ -66,6 +76,10 @@ class KholoColors {
   static const Color lutealAccent = warmGold;
 
   // ── Baby care & pregnancy accent ──────────────────────────────────────────
+  static const Color terracotta = Color(0xFFC85A32);
+  static const Color terracottaLight = Color(0xFFFFF0EB);
+  static const Color terracottaDark = Color(0xFF9E3F1D);
+
   static const Color sage = Color(0xFFE89376);
   static const Color sageLight = Color(0xFFFFF1EB);
   static const Color sageDark = Color(0xFFB85939);
@@ -75,6 +89,41 @@ class KholoColors {
   static const Color warning = warmGold; // #FFE185
   static const Color error = Color(0xFFD9383A);
   static const Color divider = Color(0xFFF3E2ED);
+
+  // ── Dynamic Theme Helpers (Light vs Dark) ───────────────────────────────────
+  static bool isDark(BuildContext context) =>
+      Theme.of(context).brightness == Brightness.dark;
+
+  static Color canvasOf(BuildContext context) =>
+      isDark(context) ? darkCanvas : canvas;
+
+  static Color surfaceOf(BuildContext context) =>
+      isDark(context) ? darkSurface : cream;
+
+  static Color cardOf(BuildContext context) =>
+      isDark(context) ? darkCard : Colors.white;
+
+  static Color cardSecondaryOf(BuildContext context) =>
+      isDark(context) ? darkCardElevated : cardSurface;
+
+  static Color inkOf(BuildContext context) =>
+      isDark(context) ? darkInk : ink;
+
+  static Color inkMutedOf(BuildContext context) =>
+      isDark(context) ? darkInkMuted : inkMuted;
+
+  static Color inkSubtleOf(BuildContext context) =>
+      isDark(context) ? darkInkSubtle : inkSubtle;
+
+  static Color dividerOf(BuildContext context) =>
+      isDark(context) ? darkDivider : divider;
+
+  static Color tintOf(BuildContext context, Color color,
+      {double lightAlpha = 0.12, double darkAlpha = 0.22}) {
+    return isDark(context)
+        ? color.withValues(alpha: darkAlpha)
+        : color.withValues(alpha: lightAlpha);
+  }
 
   // ── Phase convenience map ─────────────────────────────────────────────────
   static Color phaseColor(String phase) {
@@ -106,4 +155,36 @@ class KholoColors {
         return cream;
     }
   }
+
+  static Color phaseLightColorOf(BuildContext context, String phase) {
+    final dark = isDark(context);
+    switch (phase) {
+      case 'menstrual':
+        return dark ? rose.withValues(alpha: 0.22) : roseLight;
+      case 'follicular':
+        return dark ? lavender.withValues(alpha: 0.22) : lavenderLight;
+      case 'ovulation':
+        return dark ? plum.withValues(alpha: 0.25) : primaryLight;
+      case 'luteal':
+        return dark ? warmGold.withValues(alpha: 0.20) : lutealTint;
+      default:
+        return surfaceOf(context);
+    }
+  }
+}
+
+/// Convenience Extension on BuildContext for quick access to dynamic colors
+extension KholoThemeExtension on BuildContext {
+  bool get isDark => Theme.of(this).brightness == Brightness.dark;
+  Color get kCanvas => KholoColors.canvasOf(this);
+  Color get kSurface => KholoColors.surfaceOf(this);
+  Color get kCard => KholoColors.cardOf(this);
+  Color get kCardElevated => KholoColors.cardSecondaryOf(this);
+  Color get kCardSecondary => KholoColors.cardSecondaryOf(this);
+  Color get kInk => KholoColors.inkOf(this);
+  Color get kInkMuted => KholoColors.inkMutedOf(this);
+  Color get kInkSubtle => KholoColors.inkSubtleOf(this);
+  Color get kDivider => KholoColors.dividerOf(this);
+  Color kTint(Color color, {double lightAlpha = 0.12, double darkAlpha = 0.22}) =>
+      KholoColors.tintOf(this, color, lightAlpha: lightAlpha, darkAlpha: darkAlpha);
 }

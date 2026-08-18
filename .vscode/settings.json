@@ -1,0 +1,7 @@
+{
+    "dart.flutterHotReloadOnSave": "all",
+    "dart.previewFlutterUiGuides": true,
+    "dart.debugSdkLibraries": false,
+    "dart.debugExternalPackageLibraries": false,
+    "dart.flutterSelectDeviceWhenConnected": true
+}

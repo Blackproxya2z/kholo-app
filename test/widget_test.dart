@@ -72,7 +72,7 @@ void main() {
       );
 
       expect(find.text('KHOLO'), findsOneWidget);
-      expect(find.text('Here\'s your overview'), findsOneWidget);
+      expect(find.byType(TodayScreen), findsOneWidget);
     });
 
     testWidgets('KholoApp initializes and mounts without throwing', (tester) async {

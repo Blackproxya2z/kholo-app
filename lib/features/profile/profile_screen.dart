@@ -12,6 +12,7 @@ import '../../core/services/export_service.dart';
 import '../../core/providers/sync_provider.dart';
 import '../../core/services/sync_engine_service.dart';
 import '../../core/services/update_service.dart';
+import '../../core/services/notification_service.dart';
 import '../../shared/widgets/update_dialog.dart';
 import '../../shared/widgets/kholo_animated_loader.dart';
 import 'widgets/health_baseline_sheet.dart';
@@ -27,9 +28,9 @@ class ProfileScreen extends ConsumerWidget {
     final tt = Theme.of(context).textTheme;
 
     return Scaffold(
-      backgroundColor: KholoColors.canvas,
+      backgroundColor: context.kCanvas,
       appBar: AppBar(
-        title: const Text('Profile & privacy'),
+        title: Text('Profile & privacy', style: TextStyle(color: context.kInk)),
         actions: [
           TextButton(
             onPressed: () => ref.read(authProvider.notifier).signOut(),
@@ -177,21 +178,17 @@ class ProfileScreen extends ConsumerWidget {
 
           const SizedBox(height: 20),
 
-          // ── App Settings ─────────────────────────────────────────────
-          const _SectionTitle('App settings'),
+          // ── App Settings & Theme ─────────────────────────────────────
+          const _SectionTitle('Appearance & theme'),
+          const SizedBox(height: 12),
+          const _ThemeSelectorCard(),
+
+          const SizedBox(height: 20),
+
+          const _SectionTitle('Security & updates'),
           const SizedBox(height: 12),
           _ProfileCard(
             children: [
-              _SettingsToggleRow(
-                icon: Icons.dark_mode_outlined,
-                label: 'Dark mode',
-                subtitle: 'Switch to dark colour scheme',
-                value: ref.watch(appSettingsProvider).darkMode,
-                onChanged: (v) {
-                  HapticFeedback.selectionClick();
-                  ref.read(appSettingsProvider.notifier).setDarkMode(v);
-                },
-              ),
               _BiometricToggleRow(
                 value: ref.watch(appSettingsProvider).biometricLock,
                 onChanged: (v) async {
@@ -301,30 +298,92 @@ class ProfileScreen extends ConsumerWidget {
 
           const SizedBox(height: 20),
 
+          // App Updates & Version
+          const _SectionTitle('App version & updates'),
+          const SizedBox(height: 12),
+          _ProfileCard(
+            children: [
+              _ActionRow(
+                icon: Icons.system_update_rounded,
+                label: 'Check for updates & send alert',
+                color: KholoColors.wine,
+                onTap: () async {
+                  HapticFeedback.mediumImpact();
+                  final currentCode = await UpdateService.currentVersionCode();
+                  final currentName = await UpdateService.currentVersionName();
+                  final update = await UpdateService.checkForUpdate();
+                  if (update != null && update.isNewerThan(currentCode, currentName)) {
+                    await NotificationService.showUpdateNotification(
+                      version: update.latestVersion,
+                      versionCode: update.versionCode,
+                      releaseNotes: update.releaseNotes,
+                      force: true,
+                    );
+                    if (context.mounted) {
+                      context.go('/update', extra: {
+                        'update': update,
+                        'currentVersionCode': currentCode,
+                        'currentVersionName': currentName,
+                      });
+                    }
+                  } else {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                              'You are on the latest version of KHOLO (v$currentName build $currentCode).'),
+                          backgroundColor: KholoColors.wine,
+                          behavior: SnackBarBehavior.floating,
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12)),
+                        ),
+                      );
+                    }
+                  }
+                },
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 20),
+
           // Disclaimer
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: KholoColors.lavenderLight,
+              color: context.isDark
+                  ? context.kCardElevated
+                  : KholoColors.lavenderLight,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: KholoColors.lavender.withValues(alpha: 0.3)),
+              border: Border.all(
+                  color: (context.isDark
+                          ? KholoColors.magenta
+                          : KholoColors.lavender)
+                      .withValues(alpha: 0.3)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   children: [
-                    const Icon(Icons.shield_outlined,
-                        color: KholoColors.plum, size: 18),
+                    Icon(Icons.shield_outlined,
+                        color: context.isDark
+                            ? KholoColors.magenta
+                            : KholoColors.plum,
+                        size: 18),
                     const SizedBox(width: 8),
                     Text('Health disclaimer',
-                        style: tt.titleSmall?.copyWith(color: KholoColors.plum)),
+                        style: tt.titleSmall?.copyWith(
+                            color: context.isDark
+                                ? KholoColors.blush
+                                : KholoColors.plum)),
                   ],
                 ),
                 const SizedBox(height: 8),
                 Text(
                   'KHOLO provides self-tracking tools and educational content. It does not diagnose conditions, replace contraception, or substitute for clinical care. All cycle and fertility estimates are based on your input data.\n\nFor any health concerns, please contact a qualified healthcare provider.',
-                  style: tt.bodySmall?.copyWith(color: KholoColors.inkMuted, height: 1.6),
+                  style: tt.bodySmall
+                      ?.copyWith(color: context.kInkMuted, height: 1.6),
                 ),
               ],
             ),
@@ -518,9 +577,12 @@ class _ProfileHeader extends StatelessWidget {
         Container(
           width: 64,
           height: 64,
-          decoration: const BoxDecoration(
-            color: KholoColors.lavenderLight,
+          decoration: BoxDecoration(
+            color: context.isDark
+                ? context.kCardElevated
+                : KholoColors.lavenderLight,
             shape: BoxShape.circle,
+            border: Border.all(color: context.kDivider),
           ),
           child: Center(
             child: Text(
@@ -528,7 +590,7 @@ class _ProfileHeader extends StatelessWidget {
               style: GoogleFonts.playfairDisplay(
                 fontSize: 26,
                 fontWeight: FontWeight.w700,
-                color: KholoColors.plum,
+                color: context.isDark ? KholoColors.blush : KholoColors.plum,
               ),
             ),
           ),
@@ -538,9 +600,10 @@ class _ProfileHeader extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Your private space', style: tt.titleLarge),
+              Text('Your private space',
+                  style: tt.titleLarge?.copyWith(color: context.kInk)),
               Text(email,
-                  style: tt.bodySmall?.copyWith(color: KholoColors.inkMuted),
+                  style: tt.bodySmall?.copyWith(color: context.kInkMuted),
                   overflow: TextOverflow.ellipsis),
             ],
           ),
@@ -558,10 +621,196 @@ class _SectionTitle extends StatelessWidget {
         text.toUpperCase(),
         style: Theme.of(context).textTheme.labelSmall?.copyWith(
               letterSpacing: 1.2,
-              color: KholoColors.inkSubtle,
+              color: context.kInkSubtle,
+              fontWeight: FontWeight.w700,
             ),
       );
 }
+
+class _ThemeSelectorCard extends ConsumerWidget {
+  const _ThemeSelectorCard();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final currentPref = ref.watch(appSettingsProvider).themePreference;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: context.kCard,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: context.kDivider),
+        boxShadow: [
+          BoxShadow(
+            color: context.isDark
+                ? Colors.black.withValues(alpha: 0.3)
+                : KholoColors.wine.withValues(alpha: 0.04),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: context.kTint(KholoColors.magenta),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.palette_outlined,
+                    color: KholoColors.magenta, size: 18),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'App Theme',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: context.kInk,
+                      ),
+                    ),
+                    Text(
+                      switch (currentPref) {
+                        AppThemePreference.light => 'Light porcelain ambiance',
+                        AppThemePreference.dark => 'Deep velvet night wellness',
+                        AppThemePreference.system => 'Automatically sync with device',
+                      },
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: context.kInkMuted,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          // 3-Way Segmented Selector
+          Container(
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: context.kSurface,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: context.kDivider),
+            ),
+            child: Row(
+              children: [
+                _ThemeOptionButton(
+                  title: 'Light',
+                  icon: Icons.light_mode_rounded,
+                  selected: currentPref == AppThemePreference.light,
+                  onTap: () {
+                    HapticFeedback.selectionClick();
+                    ref
+                        .read(appSettingsProvider.notifier)
+                        .setThemePreference(AppThemePreference.light);
+                  },
+                ),
+                _ThemeOptionButton(
+                  title: 'Dark',
+                  icon: Icons.dark_mode_rounded,
+                  selected: currentPref == AppThemePreference.dark,
+                  onTap: () {
+                    HapticFeedback.selectionClick();
+                    ref
+                        .read(appSettingsProvider.notifier)
+                        .setThemePreference(AppThemePreference.dark);
+                  },
+                ),
+                _ThemeOptionButton(
+                  title: 'System',
+                  icon: Icons.brightness_auto_rounded,
+                  selected: currentPref == AppThemePreference.system,
+                  onTap: () {
+                    HapticFeedback.selectionClick();
+                    ref
+                        .read(appSettingsProvider.notifier)
+                        .setThemePreference(AppThemePreference.system);
+                  },
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ThemeOptionButton extends StatelessWidget {
+  const _ThemeOptionButton({
+    required this.title,
+    required this.icon,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String title;
+  final IconData icon;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeInOut,
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          decoration: BoxDecoration(
+            color: selected ? KholoColors.wine : Colors.transparent,
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: selected
+                ? [
+                    BoxShadow(
+                      color: KholoColors.wine.withValues(alpha: 0.35),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    )
+                  ]
+                : null,
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                icon,
+                size: 16,
+                color: selected
+                    ? Colors.white
+                    : context.kInkMuted,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
+                  color: selected
+                      ? Colors.white
+                      : context.kInkMuted,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 
 class _ProfileCard extends StatelessWidget {
   const _ProfileCard({required this.children});
@@ -572,9 +821,18 @@ class _ProfileCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
-        color: KholoColors.cream,
+        color: context.kCard,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: KholoColors.divider),
+        border: Border.all(color: context.kDivider),
+        boxShadow: [
+          BoxShadow(
+            color: context.isDark
+                ? Colors.black.withValues(alpha: 0.25)
+                : KholoColors.wine.withValues(alpha: 0.03),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(children: children),
     );
@@ -598,21 +856,31 @@ class _EditableRow extends StatelessWidget {
     final tt = Theme.of(context).textTheme;
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 12),
-      decoration: const BoxDecoration(
-        border: Border(bottom: BorderSide(color: KholoColors.divider)),
+      decoration: BoxDecoration(
+        border: Border(bottom: BorderSide(color: context.kDivider)),
       ),
       child: Row(
         children: [
-          Icon(icon, size: 18, color: KholoColors.inkSubtle),
+          Icon(icon, size: 18, color: context.kInkSubtle),
           const SizedBox(width: 12),
-          Expanded(child: Text(label, style: tt.bodyMedium)),
-          Text(value,
-              style: tt.bodyMedium?.copyWith(color: KholoColors.plum)),
+          Expanded(
+            child: Text(
+              label,
+              style: tt.bodyMedium?.copyWith(color: context.kInk),
+            ),
+          ),
+          Text(
+            value,
+            style: tt.bodyMedium?.copyWith(
+              color: KholoColors.magenta,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
           const SizedBox(width: 8),
           GestureDetector(
             onTap: onEdit,
-            child: const Icon(Icons.edit_outlined,
-                size: 16, color: KholoColors.inkSubtle),
+            child: Icon(Icons.edit_outlined,
+                size: 16, color: context.kInkSubtle),
           ),
         ],
       ),
@@ -621,7 +889,8 @@ class _EditableRow extends StatelessWidget {
 }
 
 class _StaticRow extends StatelessWidget {
-  const _StaticRow({required this.icon, required this.label, required this.subtitle});
+  const _StaticRow(
+      {required this.icon, required this.label, required this.subtitle});
   final IconData icon;
   final String label;
   final String subtitle;
@@ -631,21 +900,32 @@ class _StaticRow extends StatelessWidget {
     final tt = Theme.of(context).textTheme;
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 12),
-      decoration: const BoxDecoration(
-        border: Border(bottom: BorderSide(color: KholoColors.divider)),
+      decoration: BoxDecoration(
+        border: Border(bottom: BorderSide(color: context.kDivider)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 18, color: KholoColors.plum),
+          Icon(icon, size: 18, color: KholoColors.magenta),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(label, style: tt.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
-                Text(subtitle,
-                    style: tt.bodySmall?.copyWith(color: KholoColors.inkMuted, height: 1.4)),
+                Text(
+                  label,
+                  style: tt.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: context.kInk,
+                  ),
+                ),
+                Text(
+                  subtitle,
+                  style: tt.bodySmall?.copyWith(
+                    color: context.kInkMuted,
+                    height: 1.4,
+                  ),
+                ),
               ],
             ),
           ),
@@ -674,8 +954,8 @@ class _ActionRow extends StatelessWidget {
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 14),
-        decoration: const BoxDecoration(
-          border: Border(bottom: BorderSide(color: KholoColors.divider)),
+        decoration: BoxDecoration(
+          border: Border(bottom: BorderSide(color: context.kDivider)),
         ),
         child: Row(
           children: [
@@ -688,63 +968,6 @@ class _ActionRow extends StatelessWidget {
             Icon(Icons.chevron_right_rounded, size: 18, color: color),
           ],
         ),
-      ),
-    );
-  }
-}
-
-// ── Settings Toggle Rows ──────────────────────────────────────────────────────
-
-class _SettingsToggleRow extends StatelessWidget {
-  const _SettingsToggleRow({
-    required this.icon,
-    required this.label,
-    required this.subtitle,
-    required this.value,
-    required this.onChanged,
-  });
-  final IconData icon;
-  final String label;
-  final String subtitle;
-  final bool value;
-  final ValueChanged<bool> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    final tt = Theme.of(context).textTheme;
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      decoration: const BoxDecoration(
-        border: Border(bottom: BorderSide(color: KholoColors.divider)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 36, height: 36,
-            decoration: const BoxDecoration(
-              color: KholoColors.lavenderLight,
-              shape: BoxShape.circle,
-            ),
-            child: Icon(icon, color: KholoColors.plum, size: 18),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(label,
-                    style: tt.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
-                Text(subtitle,
-                    style: tt.bodySmall?.copyWith(color: KholoColors.inkMuted)),
-              ],
-            ),
-          ),
-          Switch.adaptive(
-            value: value,
-            activeTrackColor: KholoColors.wine,
-            onChanged: onChanged,
-          ),
-        ],
       ),
     );
   }
@@ -778,9 +1001,10 @@ class _BiometricToggleRowState extends State<_BiometricToggleRow> {
       child: Row(
         children: [
           Container(
-            width: 36, height: 36,
-            decoration: const BoxDecoration(
-              color: KholoColors.roseLight,
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: context.kTint(KholoColors.rose),
               shape: BoxShape.circle,
             ),
             child: const Icon(Icons.fingerprint_rounded,
@@ -791,13 +1015,18 @@ class _BiometricToggleRowState extends State<_BiometricToggleRow> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Biometric lock',
-                    style: tt.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
+                Text(
+                  'Biometric lock',
+                  style: tt.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: context.kInk,
+                  ),
+                ),
                 Text(
                   _available
                       ? 'Require fingerprint/face to open app'
                       : 'Not available on this device',
-                  style: tt.bodySmall?.copyWith(color: KholoColors.inkMuted),
+                  style: tt.bodySmall?.copyWith(color: context.kInkMuted),
                 ),
               ],
             ),
@@ -813,8 +1042,6 @@ class _BiometricToggleRowState extends State<_BiometricToggleRow> {
   }
 }
 
-// ── Cloud Sync Status Card ───────────────────────────────────────────────────
-
 class _SyncStatusCard extends ConsumerWidget {
   const _SyncStatusCard();
 
@@ -826,9 +1053,18 @@ class _SyncStatusCard extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: KholoColors.cream,
+        color: context.kCard,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: KholoColors.divider),
+        border: Border.all(color: context.kDivider),
+        boxShadow: [
+          BoxShadow(
+            color: context.isDark
+                ? Colors.black.withValues(alpha: 0.25)
+                : KholoColors.wine.withValues(alpha: 0.03),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -857,30 +1093,31 @@ class _SyncStatusCard extends ConsumerWidget {
                       syncState.statusDisplay,
                       style: tt.titleSmall?.copyWith(
                         fontWeight: FontWeight.w700,
-                        color: KholoColors.ink,
+                        color: context.kInk,
                       ),
                     ),
                     Text(
                       syncState.lastSyncedAt != null
                           ? 'Last synced ${_formatSyncTime(syncState.lastSyncedAt!)}'
                           : 'Local changes are preserved offline',
-                      style: tt.bodySmall?.copyWith(color: KholoColors.inkMuted),
+                      style: tt.bodySmall?.copyWith(color: context.kInkMuted),
                     ),
                   ],
                 ),
               ),
               if (syncState.status == SyncStatus.syncing)
-                const SizedBox(
+                SizedBox(
                   width: 24,
                   height: 24,
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
-                    color: KholoColors.wine,
+                    color: context.isDark ? KholoColors.magenta : KholoColors.wine,
                   ),
                 )
               else
                 IconButton(
-                  icon: const Icon(Icons.sync_rounded, color: KholoColors.wine),
+                  icon: Icon(Icons.sync_rounded,
+                      color: context.isDark ? KholoColors.magenta : KholoColors.wine),
                   tooltip: 'Sync now',
                   onPressed: () {
                     HapticFeedback.selectionClick();
@@ -893,18 +1130,22 @@ class _SyncStatusCard extends ConsumerWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             decoration: BoxDecoration(
-              color: KholoColors.lavenderLight,
+              color: context.isDark
+                  ? context.kCardElevated
+                  : KholoColors.lavenderLight,
               borderRadius: BorderRadius.circular(8),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.shield_outlined, size: 14, color: KholoColors.plum),
+                Icon(Icons.shield_outlined,
+                    size: 14,
+                    color: context.isDark ? KholoColors.blush : KholoColors.plum),
                 const SizedBox(width: 6),
                 Text(
                   'End-to-end device storage integrity',
                   style: tt.labelSmall?.copyWith(
-                    color: KholoColors.plum,
+                    color: context.isDark ? KholoColors.blush : KholoColors.plum,
                     fontWeight: FontWeight.w600,
                   ),
                 ),

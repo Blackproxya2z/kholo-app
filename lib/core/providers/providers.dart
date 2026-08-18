@@ -9,6 +9,7 @@ import '../models/cart_item.dart';
 import '../models/product.dart';
 
 export 'dynamic_config_provider.dart';
+export 'update_provider.dart';
 
 // ── Infrastructure ────────────────────────────────────────────────────────────
 
@@ -162,6 +163,8 @@ final babiesProvider =
   return BabiesNotifier(ref.watch(localStorageProvider));
 });
 
+final babyProfilesProvider = babiesProvider;
+
 // ── Baby logs ─────────────────────────────────────────────────────────────────
 
 class BabyLogsNotifier extends StateNotifier<List<BabyLog>> {
@@ -173,6 +176,23 @@ class BabyLogsNotifier extends StateNotifier<List<BabyLog>> {
     await _storage.saveBabyLog(log);
     state = _storage.getBabyLogs();
   }
+
+  Future<void> addFeed(BabyLog log) => add(log);
+  Future<void> addSleep(BabyLog log) => add(log);
+  Future<void> addDiaper(BabyLog log) => add(log);
+}
+
+extension BabyLogListX on List<BabyLog> {
+  List<BabyLog> get feedLogs =>
+      where((l) => l.logType == BabyLogType.feeding).toList();
+  List<BabyLog> get sleepLogs =>
+      where((l) => l.logType == BabyLogType.sleep).toList();
+  List<BabyLog> get diaperLogs =>
+      where((l) => l.logType == BabyLogType.diaper).toList();
+  List<BabyLog> get growthLogs =>
+      where((l) => l.logType == BabyLogType.growth).toList();
+  List<BabyLog> get milestoneLogs =>
+      where((l) => l.logType == BabyLogType.milestone).toList();
 }
 
 final babyLogsProvider =

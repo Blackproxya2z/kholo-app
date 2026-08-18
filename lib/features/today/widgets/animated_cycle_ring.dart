@@ -51,24 +51,45 @@ class _AnimatedCycleRingState extends State<AnimatedCycleRing>
     super.dispose();
   }
 
-  (Color primary, Color secondary, Color glow) _getPhaseColors() {
+  (Color primary, Color secondary, Color glow) _getPhaseColors(BuildContext context) {
+    final dark = context.isDark;
     switch (widget.phase) {
       case CyclePhase.menstrual:
-        return (KholoColors.magenta, KholoColors.wine, KholoColors.blush);
+        return (
+          KholoColors.magenta,
+          dark ? KholoColors.blush : KholoColors.wine,
+          dark ? KholoColors.magenta.withValues(alpha: 0.35) : KholoColors.blush.withValues(alpha: 0.45)
+        );
       case CyclePhase.follicular:
-        return (KholoColors.lavender, KholoColors.plum, KholoColors.lavenderLight);
+        return (
+          dark ? KholoColors.magenta : KholoColors.lavender,
+          dark ? KholoColors.blush : KholoColors.plum,
+          dark ? KholoColors.magenta.withValues(alpha: 0.25) : KholoColors.lavenderLight
+        );
       case CyclePhase.ovulation:
-        return (KholoColors.plum, KholoColors.wine, KholoColors.blush);
+        return (
+          KholoColors.plum,
+          dark ? KholoColors.blush : KholoColors.wine,
+          dark ? KholoColors.wine.withValues(alpha: 0.4) : KholoColors.blush.withValues(alpha: 0.4)
+        );
       case CyclePhase.luteal:
-        return (KholoColors.warmGold, KholoColors.tertiaryDark, KholoColors.tertiaryLight);
+        return (
+          KholoColors.warmGold,
+          dark ? KholoColors.warmGold : KholoColors.tertiaryDark,
+          dark ? KholoColors.warmGold.withValues(alpha: 0.25) : KholoColors.tertiaryLight
+        );
       case CyclePhase.unknown:
-        return (KholoColors.inkMuted, KholoColors.inkSubtle, KholoColors.cream);
+        return (
+          context.kInkMuted,
+          context.kInk,
+          context.kCardElevated
+        );
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final colors = _getPhaseColors();
+    final colors = _getPhaseColors(context);
     final progress = (widget.totalDays > 0)
         ? (widget.currentDay / widget.totalDays).clamp(0.0, 1.0)
         : 0.0;
@@ -91,7 +112,7 @@ class _AnimatedCycleRingState extends State<AnimatedCycleRing>
               shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(
-                  color: colors.$3.withValues(alpha: 0.4),
+                  color: colors.$3,
                   blurRadius: 32,
                   spreadRadius: 4,
                 ),
@@ -107,6 +128,9 @@ class _AnimatedCycleRingState extends State<AnimatedCycleRing>
                     progress: progress,
                     primaryColor: colors.$1,
                     secondaryColor: colors.$2,
+                    trackColor: context.isDark
+                        ? context.kCardElevated
+                        : context.kDivider.withValues(alpha: 0.6),
                   ),
                 ),
 
@@ -115,11 +139,12 @@ class _AnimatedCycleRingState extends State<AnimatedCycleRing>
                   width: 176,
                   height: 176,
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: context.kCard,
                     shape: BoxShape.circle,
+                    border: Border.all(color: context.kDivider),
                     boxShadow: [
                       BoxShadow(
-                        color: colors.$1.withValues(alpha: 0.1),
+                        color: colors.$1.withValues(alpha: context.isDark ? 0.18 : 0.08),
                         blurRadius: 16,
                       ),
                     ],
@@ -133,7 +158,7 @@ class _AnimatedCycleRingState extends State<AnimatedCycleRing>
                           fontSize: 11,
                           fontWeight: FontWeight.w600,
                           letterSpacing: 2.0,
-                          color: KholoColors.inkSubtle,
+                          color: context.kInkSubtle,
                         ),
                       ),
                       Text(
@@ -149,7 +174,7 @@ class _AnimatedCycleRingState extends State<AnimatedCycleRing>
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
                         decoration: BoxDecoration(
-                          color: colors.$1.withValues(alpha: 0.15),
+                          color: colors.$1.withValues(alpha: context.isDark ? 0.25 : 0.15),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text(
@@ -164,9 +189,9 @@ class _AnimatedCycleRingState extends State<AnimatedCycleRing>
                       const SizedBox(height: 4),
                       Text(
                         'of ${widget.totalDays} days',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 11,
-                          color: KholoColors.inkMuted,
+                          color: context.kInkMuted,
                         ),
                       ),
                     ],
@@ -185,11 +210,13 @@ class _CycleRingPainter extends CustomPainter {
   final double progress;
   final Color primaryColor;
   final Color secondaryColor;
+  final Color trackColor;
 
   _CycleRingPainter({
     required this.progress,
     required this.primaryColor,
     required this.secondaryColor,
+    required this.trackColor,
   });
 
   @override
@@ -198,61 +225,66 @@ class _CycleRingPainter extends CustomPainter {
     final radius = (size.width - 24) / 2;
     const strokeWidth = 14.0;
 
-    // Track Background
+    // Background track
     final trackPaint = Paint()
-      ..color = KholoColors.lavender.withValues(alpha: 0.3)
+      ..color = trackColor
       ..style = PaintingStyle.stroke
       ..strokeWidth = strokeWidth
       ..strokeCap = StrokeCap.round;
 
     canvas.drawCircle(center, radius, trackPaint);
 
-    // Active Gradient Arc
-    final sweepAngle = 2 * math.pi * progress;
-    final arcPaint = Paint()
-      ..shader = SweepGradient(
-        startAngle: -math.pi / 2,
-        endAngle: (3 * math.pi) / 2,
-        colors: [primaryColor, secondaryColor, primaryColor],
-        stops: const [0.0, 0.7, 1.0],
-        transform: const GradientRotation(-math.pi / 2),
-      ).createShader(Rect.fromCircle(center: center, radius: radius))
+    if (progress <= 0) return;
+
+    // Progress Arc with Gradient
+    final rect = Rect.fromCircle(center: center, radius: radius);
+    final gradient = SweepGradient(
+      startAngle: -math.pi / 2,
+      endAngle: 3 * math.pi / 2,
+      colors: [primaryColor, secondaryColor, primaryColor],
+      stops: const [0.0, 0.5, 1.0],
+      transform: const GradientRotation(-math.pi / 2),
+    );
+
+    final progressPaint = Paint()
+      ..shader = gradient.createShader(rect)
       ..style = PaintingStyle.stroke
       ..strokeWidth = strokeWidth
       ..strokeCap = StrokeCap.round;
 
+    final sweepAngle = 2 * math.pi * progress;
     canvas.drawArc(
-      Rect.fromCircle(center: center, radius: radius),
-      -math.pi / 2,
+      rect,
+      -math.pi / 2, // Start at 12 o'clock
       sweepAngle,
       false,
-      arcPaint,
+      progressPaint,
     );
 
-    // Endpoint Indicator Glow Dot
-    if (progress > 0.02) {
-      final currentAngle = (-math.pi / 2) + sweepAngle;
-      final dotOffset = Offset(
-        center.dx + radius * math.cos(currentAngle),
-        center.dy + radius * math.sin(currentAngle),
-      );
+    // Glowing tip indicator
+    final tipAngle = -math.pi / 2 + sweepAngle;
+    final tipCenter = Offset(
+      center.dx + radius * math.cos(tipAngle),
+      center.dy + radius * math.sin(tipAngle),
+    );
 
-      final glowPaint = Paint()
-        ..color = primaryColor.withValues(alpha: 0.4)
-        ..style = PaintingStyle.fill;
-      canvas.drawCircle(dotOffset, strokeWidth * 0.9, glowPaint);
+    final tipPaint = Paint()
+      ..color = Colors.white
+      ..style = PaintingStyle.fill;
 
-      final dotPaint = Paint()
-        ..color = Colors.white
-        ..style = PaintingStyle.fill;
-      canvas.drawCircle(dotOffset, strokeWidth * 0.45, dotPaint);
-    }
+    final tipShadow = Paint()
+      ..color = primaryColor.withValues(alpha: 0.6)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6);
+
+    canvas.drawCircle(tipCenter, 7, tipShadow);
+    canvas.drawCircle(tipCenter, 5, tipPaint);
   }
 
   @override
   bool shouldRepaint(covariant _CycleRingPainter oldDelegate) {
     return oldDelegate.progress != progress ||
         oldDelegate.primaryColor != primaryColor ||
-        oldDelegate.secondaryColor != secondaryColor;
+        oldDelegate.secondaryColor != secondaryColor ||
+        oldDelegate.trackColor != trackColor;
   }
 }

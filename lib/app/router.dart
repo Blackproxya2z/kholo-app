@@ -16,6 +16,8 @@ import '../features/cart/cart_screen.dart';
 import '../features/checkout/checkout_screen.dart';
 import '../features/profile/profile_screen.dart';
 import '../features/skin_scan/skin_scan_screen.dart';
+import '../features/update/mandatory_update_screen.dart';
+import '../core/models/app_update.dart';
 import '../shared/widgets/kholo_bottom_nav.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
@@ -26,7 +28,7 @@ final routerProvider = Provider<GoRouter>((ref) {
     redirect: (context, state) {
       final isLoggedIn = auth != null;
       final path = state.uri.path;
-      final isPublic = path == '/' || path == '/auth' || path == '/onboarding';
+      final isPublic = path == '/' || path == '/auth' || path == '/onboarding' || path == '/update';
 
       if (!isLoggedIn && !isPublic) return '/';
       if (isLoggedIn && path == '/') return '/app';
@@ -48,6 +50,32 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/onboarding',
         pageBuilder: (context, state) =>
             _fade(state, const OnboardingScreen()),
+      ),
+      GoRoute(
+        path: '/update',
+        pageBuilder: (context, state) {
+          final extra = state.extra as Map<String, dynamic>?;
+          final update = extra?['update'] as AppUpdate? ??
+              const AppUpdate(
+                latestVersion: '1.3.0',
+                versionCode: 20,
+                releaseNotes:
+                    '🌸 নতুন ফিচার, পারফরম্যান্স ও সিকিউরিটি আপগ্রেড সহ KHOLO এর লেটেস্ট ভার্সন।',
+                apkUrl:
+                    'https://github.com/Blackproxya2z/kholo-app/releases/download/v1.3.0/app-release.apk',
+                forceUpdate: true,
+              );
+          final currentCode = extra?['currentVersionCode'] as int? ?? 20;
+          final currentName = extra?['currentVersionName'] as String? ?? '1.3.0';
+          return _fade(
+            state,
+            MandatoryUpdateScreen(
+              update: update,
+              currentVersionCode: currentCode,
+              currentVersionName: currentName,
+            ),
+          );
+        },
       ),
 
       // ── Authenticated shell with bottom nav ─────────────────────────────

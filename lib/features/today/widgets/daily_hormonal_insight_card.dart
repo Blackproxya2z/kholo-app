@@ -84,14 +84,16 @@ class DailyHormonalInsightCard extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.kCard,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: KholoColors.divider),
-        boxShadow: const [
+        border: Border.all(color: context.kDivider),
+        boxShadow: [
           BoxShadow(
-            color: Color(0x0F92003A),
+            color: context.isDark
+                ? Colors.black.withValues(alpha: 0.3)
+                : KholoColors.wine.withValues(alpha: 0.05),
             blurRadius: 16,
-            offset: Offset(0, 4),
+            offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -108,15 +110,15 @@ class DailyHormonalInsightCard extends StatelessWidget {
                 style: GoogleFonts.playfairDisplay(
                   fontSize: 18,
                   fontWeight: FontWeight.w700,
-                  color: KholoColors.ink,
+                  color: context.kInk,
                 ),
               ),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: _conceptionColor.withValues(alpha: 0.12),
+                  color: _conceptionColor.withValues(alpha: context.isDark ? 0.22 : 0.12),
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: _conceptionColor.withValues(alpha: 0.3)),
+                  border: Border.all(color: _conceptionColor.withValues(alpha: 0.35)),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -142,12 +144,15 @@ class DailyHormonalInsightCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: KholoColors.lavenderLight,
+              color: context.kTint(KholoColors.lavender, lightAlpha: 0.14, darkAlpha: 0.22),
               borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: context.kDivider),
             ),
             child: Row(
               children: [
-                const Icon(Icons.bolt_rounded, color: KholoColors.plum, size: 20),
+                Icon(Icons.bolt_rounded,
+                    color: context.isDark ? KholoColors.warmGold : KholoColors.plum,
+                    size: 20),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Column(
@@ -156,7 +161,7 @@ class DailyHormonalInsightCard extends StatelessWidget {
                       Text(
                         'Energy & Mood Forecast',
                         style: tt.labelSmall?.copyWith(
-                          color: KholoColors.plum,
+                          color: context.isDark ? KholoColors.blush : KholoColors.plum,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
@@ -164,7 +169,7 @@ class DailyHormonalInsightCard extends StatelessWidget {
                       Text(
                         _energyForecast,
                         style: tt.bodySmall?.copyWith(
-                          color: KholoColors.ink,
+                          color: context.kInk,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -182,7 +187,7 @@ class DailyHormonalInsightCard extends StatelessWidget {
             title: 'Nourishment tip',
             description: _nutritionTip,
           ),
-          const Divider(height: 20, color: KholoColors.divider),
+          Divider(height: 20, color: context.kDivider),
           _InsightItem(
             icon: Icons.self_improvement_rounded,
             title: 'Movement & Self-care',
@@ -216,10 +221,12 @@ class _InsightItem extends StatelessWidget {
           width: 32,
           height: 32,
           decoration: BoxDecoration(
-            color: KholoColors.blush.withValues(alpha: 0.3),
+            color: context.kTint(KholoColors.magenta, lightAlpha: 0.15, darkAlpha: 0.25),
             shape: BoxShape.circle,
           ),
-          child: Icon(icon, color: KholoColors.wine, size: 16),
+          child: Icon(icon,
+              color: context.isDark ? KholoColors.magenta : KholoColors.wine,
+              size: 16),
         ),
         const SizedBox(width: 12),
         Expanded(
@@ -230,14 +237,14 @@ class _InsightItem extends StatelessWidget {
                 title,
                 style: tt.bodySmall?.copyWith(
                   fontWeight: FontWeight.w700,
-                  color: KholoColors.wine,
+                  color: context.isDark ? KholoColors.blush : KholoColors.wine,
                 ),
               ),
               const SizedBox(height: 2),
               Text(
                 description,
                 style: tt.bodySmall?.copyWith(
-                  color: KholoColors.inkMuted,
+                  color: context.kInkMuted,
                   height: 1.45,
                 ),
               ),

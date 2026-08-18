@@ -5,12 +5,22 @@ class BabyProfile {
   final String id;
   final String nickname;
   final DateTime birthDate;
+  final String gender;
+  final double? weightKg;
+  final double? lengthCm;
 
   BabyProfile({
     String? id,
-    required this.nickname,
+    String? name,
+    String? nickname,
     required this.birthDate,
-  }) : id = id ?? const Uuid().v4();
+    this.gender = 'girl',
+    this.weightKg,
+    this.lengthCm,
+  })  : id = id ?? const Uuid().v4(),
+        nickname = nickname ?? name ?? 'Baby';
+
+  String get name => nickname;
 
   /// Age in weeks (non-negative).
   int get ageWeeks {
@@ -32,21 +42,29 @@ class BabyProfile {
     return '$years year${years == 1 ? '' : 's'} old';
   }
 
+  String get ageString => ageDisplay;
+
   Map<String, dynamic> toJson() => {
     'id': id,
     'nickname': nickname,
     'birthDate': birthDate.toIso8601String(),
+    'gender': gender,
+    'weightKg': weightKg,
+    'lengthCm': lengthCm,
   };
 
   factory BabyProfile.fromJson(Map<String, dynamic> json) => BabyProfile(
     id: json['id'] as String?,
-    nickname: json['nickname'] as String,
+    nickname: (json['nickname'] ?? json['name'] ?? 'Baby') as String,
     birthDate: DateTime.parse(json['birthDate'] as String),
+    gender: (json['gender'] ?? 'girl') as String,
+    weightKg: (json['weightKg'] as num?)?.toDouble(),
+    lengthCm: (json['lengthCm'] as num?)?.toDouble(),
   );
 }
 
 /// Type of baby log entry.
-enum BabyLogType { feeding, sleep, growth, milestone }
+enum BabyLogType { feeding, sleep, growth, milestone, diaper }
 
 extension BabyLogTypeDisplay on BabyLogType {
   String get displayName {
@@ -59,6 +77,8 @@ extension BabyLogTypeDisplay on BabyLogType {
         return 'Growth';
       case BabyLogType.milestone:
         return 'Milestone';
+      case BabyLogType.diaper:
+        return 'Diaper';
     }
   }
 
@@ -72,6 +92,8 @@ extension BabyLogTypeDisplay on BabyLogType {
         return '📏';
       case BabyLogType.milestone:
         return '🌟';
+      case BabyLogType.diaper:
+        return '👶';
     }
   }
 }
@@ -88,14 +110,18 @@ class BabyLog {
   // Feeding fields
   final FeedingMethod? feedingMethod;
   final double? amountMl;
+  final String? feedType;
   // Sleep fields
   final DateTime? sleepEnd;
+  final int? durationMinutes;
   // Growth fields
   final double? weightKg;
   final double? heightCm;
   final double? headCm;
   // Milestone
   final String? milestoneLabel;
+  // Diaper
+  final String? diaperStatus;
   // Common
   final String? note;
 
@@ -106,16 +132,24 @@ class BabyLog {
     required this.occurredAt,
     this.feedingMethod,
     this.amountMl,
+    this.feedType,
     this.sleepEnd,
+    this.durationMinutes,
     this.weightKg,
     this.heightCm,
     this.headCm,
     this.milestoneLabel,
+    this.diaperStatus,
     this.note,
   }) : id = id ?? const Uuid().v4();
 
+  DateTime get timestamp => occurredAt;
+  DateTime get startTime => occurredAt;
+  String get status => diaperStatus ?? 'Wet';
+
   /// Sleep duration in minutes (null if end not set).
   int? get sleepMinutes {
+    if (durationMinutes != null) return durationMinutes;
     if (sleepEnd == null) return null;
     return sleepEnd!.difference(occurredAt).inMinutes;
   }
@@ -127,11 +161,14 @@ class BabyLog {
     'occurredAt': occurredAt.toIso8601String(),
     'feedingMethod': feedingMethod?.name,
     'amountMl': amountMl,
+    'feedType': feedType,
     'sleepEnd': sleepEnd?.toIso8601String(),
+    'durationMinutes': durationMinutes,
     'weightKg': weightKg,
     'heightCm': heightCm,
     'headCm': headCm,
     'milestoneLabel': milestoneLabel,
+    'diaperStatus': diaperStatus,
     'note': note,
   };
 
@@ -150,15 +187,65 @@ class BabyLog {
           )
         : null,
     amountMl: (json['amountMl'] as num?)?.toDouble(),
+    feedType: json['feedType'] as String?,
     sleepEnd: json['sleepEnd'] != null
         ? DateTime.parse(json['sleepEnd'] as String)
         : null,
+    durationMinutes: json['durationMinutes'] as int?,
     weightKg: (json['weightKg'] as num?)?.toDouble(),
     heightCm: (json['heightCm'] as num?)?.toDouble(),
     headCm: (json['headCm'] as num?)?.toDouble(),
     milestoneLabel: json['milestoneLabel'] as String?,
+    diaperStatus: json['diaperStatus'] as String?,
     note: json['note'] as String?,
   );
+}
+
+// ── Convenient subclass wrappers for timeline views ─────────────────────────
+class BabyFeedLog extends BabyLog {
+  BabyFeedLog({
+    super.id,
+    required super.babyId,
+    required DateTime timestamp,
+    required String feedType,
+    int? amountMl,
+    super.note,
+  }) : super(
+          logType: BabyLogType.feeding,
+          occurredAt: timestamp,
+          feedType: feedType,
+          amountMl: amountMl?.toDouble(),
+        );
+}
+
+class BabySleepLog extends BabyLog {
+  BabySleepLog({
+    super.id,
+    required super.babyId,
+    required DateTime startTime,
+    required DateTime endTime,
+    required int durationMinutes,
+    super.note,
+  }) : super(
+          logType: BabyLogType.sleep,
+          occurredAt: startTime,
+          sleepEnd: endTime,
+          durationMinutes: durationMinutes,
+        );
+}
+
+class BabyDiaperLog extends BabyLog {
+  BabyDiaperLog({
+    super.id,
+    required super.babyId,
+    required DateTime timestamp,
+    required String status,
+    super.note,
+  }) : super(
+          logType: BabyLogType.diaper,
+          occurredAt: timestamp,
+          diaperStatus: status,
+        );
 }
 
 /// Curated milestone labels.

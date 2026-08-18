@@ -30,14 +30,14 @@ class _ShopScreenState extends ConsumerState<ShopScreen> {
     final tt = Theme.of(context).textTheme;
 
     return Scaffold(
-      backgroundColor: KholoColors.canvas,
+      backgroundColor: context.kCanvas,
       appBar: AppBar(
-        title: const Text('Shop'),
+        title: Text('Shop', style: TextStyle(color: context.kInk)),
         actions: [
           Stack(
             children: [
               IconButton(
-                icon: const Icon(Icons.shopping_bag_outlined),
+                icon: Icon(Icons.shopping_bag_outlined, color: context.kInk),
                 onPressed: () => context.go('/cart'),
                 tooltip: 'View cart',
               ),
@@ -74,7 +74,7 @@ class _ShopScreenState extends ConsumerState<ShopScreen> {
               controller: _searchCtrl,
               decoration: InputDecoration(
                 hintText: 'Search products…',
-                prefixIcon: const Icon(Icons.search_rounded, color: KholoColors.inkSubtle),
+                prefixIcon: Icon(Icons.search_rounded, color: context.kInkSubtle),
                 suffixIcon: filters.searchQuery.isNotEmpty
                     ? IconButton(
                         icon: const Icon(Icons.clear_rounded, size: 18),
@@ -107,12 +107,12 @@ class _ShopScreenState extends ConsumerState<ShopScreen> {
                         ref.read(shopFiltersProvider.notifier).setCategory(cat),
                     selectedColor: KholoColors.plum,
                     labelStyle: TextStyle(
-                      color: isSelected ? Colors.white : KholoColors.ink,
+                      color: isSelected ? Colors.white : context.kInk,
                       fontSize: 13,
                     ),
-                    backgroundColor: KholoColors.cream,
+                    backgroundColor: context.kSurface,
                     side: BorderSide(
-                      color: isSelected ? KholoColors.plum : KholoColors.divider,
+                      color: isSelected ? KholoColors.plum : context.kDivider,
                     ),
                   ),
                 );
@@ -140,11 +140,13 @@ class _ShopScreenState extends ConsumerState<ShopScreen> {
                     checkmarkColor: KholoColors.plum,
                     labelStyle: TextStyle(
                       fontSize: 12,
-                      color: isSelected ? KholoColors.plum : KholoColors.inkMuted,
+                      color: isSelected
+                          ? (context.isDark ? KholoColors.magenta : KholoColors.plum)
+                          : context.kInkMuted,
                     ),
-                    backgroundColor: KholoColors.cream,
+                    backgroundColor: context.kSurface,
                     side: BorderSide(
-                      color: isSelected ? KholoColors.lavender : KholoColors.divider,
+                      color: isSelected ? KholoColors.lavender : context.kDivider,
                     ),
                   ),
                 );
@@ -160,7 +162,7 @@ class _ShopScreenState extends ConsumerState<ShopScreen> {
               children: [
                 Text(
                   '${products.length} product${products.length == 1 ? '' : 's'}',
-                  style: tt.bodySmall?.copyWith(color: KholoColors.inkMuted),
+                  style: tt.bodySmall?.copyWith(color: context.kInkMuted),
                 ),
                 const Spacer(),
                 if (filters.category != 'All' || filters.priceBand != 'All prices')
@@ -213,9 +215,9 @@ class _ProductCard extends ConsumerWidget {
       onTap: () => context.go('/shop/${product.id}'),
       child: Container(
         decoration: BoxDecoration(
-          color: KholoColors.cream,
+          color: context.kSurface,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: KholoColors.divider),
+          border: Border.all(color: context.kDivider),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -225,11 +227,11 @@ class _ProductCard extends ConsumerWidget {
               borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
               child: Container(
                 height: 110,
-                color: KholoColors.lavenderLight,
+                color: context.kTint(KholoColors.lavender, lightAlpha: 0.2, darkAlpha: 0.25),
                 child: Center(
                   child: Icon(
                     _categoryIcon(product.category),
-                    color: KholoColors.plum,
+                    color: context.isDark ? KholoColors.magenta : KholoColors.plum,
                     size: 40,
                   ),
                 ),
@@ -243,13 +245,15 @@ class _ProductCard extends ConsumerWidget {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                     decoration: BoxDecoration(
-                      color: KholoColors.lavenderLight,
+                      color: context.kTint(KholoColors.lavender, lightAlpha: 0.2, darkAlpha: 0.25),
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
                       product.category,
-                      style: const TextStyle(
-                          fontSize: 9, color: KholoColors.plum, fontWeight: FontWeight.w600),
+                      style: TextStyle(
+                          fontSize: 9,
+                          color: context.isDark ? KholoColors.magenta : KholoColors.plum,
+                          fontWeight: FontWeight.w600),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
@@ -263,11 +267,12 @@ class _ProductCard extends ConsumerWidget {
                   const SizedBox(height: 4),
                   Text(
                     '৳${product.priceBdt.toInt()}',
-                    style: tt.titleMedium?.copyWith(color: KholoColors.plum),
+                    style: tt.titleMedium?.copyWith(
+                        color: context.isDark ? KholoColors.magenta : KholoColors.plum),
                   ),
                   if (!product.isAvailable)
                     Text('Coming soon',
-                        style: tt.labelSmall?.copyWith(color: KholoColors.inkSubtle)),
+                        style: tt.labelSmall?.copyWith(color: context.kInkSubtle)),
                 ],
               ),
             ),
@@ -360,7 +365,9 @@ class _CartCounter extends ConsumerWidget {
           child: Center(
             child: Text(
               '$count',
-              style: const TextStyle(fontWeight: FontWeight.w700, color: KholoColors.plum),
+              style: TextStyle(
+                  fontWeight: FontWeight.w700,
+                  color: context.isDark ? KholoColors.magenta : KholoColors.plum),
             ),
           ),
         ),
@@ -386,10 +393,11 @@ class _CounterButton extends StatelessWidget {
         width: 30,
         height: 30,
         decoration: BoxDecoration(
-          color: KholoColors.lavenderLight,
+          color: context.kTint(KholoColors.lavender, lightAlpha: 0.2, darkAlpha: 0.25),
           borderRadius: BorderRadius.circular(8),
         ),
-        child: Icon(icon, size: 16, color: KholoColors.plum),
+        child: Icon(icon, size: 16,
+            color: context.isDark ? KholoColors.magenta : KholoColors.plum),
       ),
     );
   }
@@ -408,13 +416,13 @@ class _EmptySearchState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.search_off_rounded, color: KholoColors.inkSubtle, size: 48),
+            Icon(Icons.search_off_rounded, color: context.kInkSubtle, size: 48),
             const SizedBox(height: 16),
             Text(
               query.isNotEmpty
                   ? 'No products found for "$query"'
                   : 'No products match your filters.',
-              style: tt.bodyMedium?.copyWith(color: KholoColors.inkMuted),
+              style: tt.bodyMedium?.copyWith(color: context.kInkMuted),
               textAlign: TextAlign.center,
             ),
           ],

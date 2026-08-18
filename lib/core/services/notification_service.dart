@@ -6,17 +6,24 @@ import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 import '../../core/models/health_profile.dart';
 
-/// Service that schedules and manages local period & cycle reminder
-/// notifications. Entirely on-device — no server required.
+/// ─── LOCAL NOTIFICATION & DIRECT UPDATE TRIGGER SERVICE ───────────────────
+///
+/// Features:
+/// 1. Cycle & Period proactive health reminders.
+/// 2. One-time legacy user update campaign notifications.
+/// 3. Direct tap-to-update payload routing (`kholo_update`).
+/// ────────────────────────────────────────────────────────────────────────────
 class NotificationService {
   NotificationService._();
 
   static final _plugin = FlutterLocalNotificationsPlugin();
   static bool _initialized = false;
+  static ValueChanged<String>? onNotificationTap;
 
   static const _channelId = 'kholo_cycle';
   static const _channelName = 'Cycle & Health Reminders';
-  static const _channelDesc = 'Period reminders, fertile window alerts, daily log nudges';
+  static const _channelDesc =
+      'Period reminders, fertile window alerts, daily log nudges';
 
   /// Call once from main() before runApp.
   static Future<void> init() async {
@@ -32,6 +39,11 @@ class NotificationService {
 
     await _plugin.initialize(
       const InitializationSettings(android: android, iOS: ios),
+      onDidReceiveNotificationResponse: (NotificationResponse response) {
+        if (response.payload != null && response.payload!.isNotEmpty) {
+          onNotificationTap?.call(response.payload!);
+        }
+      },
     );
 
     // Proactively register notification channels on Android
@@ -69,10 +81,10 @@ class NotificationService {
   static Future<bool> requestPermission() async {
     if (!Platform.isAndroid) return true;
     try {
-      final androidPlugin =
-          _plugin.resolvePlatformSpecificImplementation<
-              AndroidFlutterLocalNotificationsPlugin>();
-      final granted = await androidPlugin?.requestNotificationsPermission() ?? false;
+      final androidPlugin = _plugin.resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin>();
+      final granted =
+          await androidPlugin?.requestNotificationsPermission() ?? false;
       return granted;
     } catch (_) {
       return false;
@@ -95,7 +107,8 @@ class NotificationService {
       await _scheduleAt(
         id: 1001,
         title: '🩸 Period arriving soon',
-        body: 'Your period is expected in about 2 days. Stock up on care essentials!',
+        body:
+            'Your period is expected in about 2 days. Stock up on care essentials!',
         scheduledDate: twoBeforePeriod.copyWith(hour: 9, minute: 0),
       );
     }
@@ -117,17 +130,20 @@ class NotificationService {
       await _scheduleAt(
         id: 1003,
         title: '✨ Fertile window beginning',
-        body: 'Your estimated fertile window starts around now. Check your insights!',
+        body:
+            'Your estimated fertile window starts around now. Check your insights!',
         scheduledDate: fertileStart.copyWith(hour: 9, minute: 0),
       );
     }
 
     // ── Notification 4: Daily log reminder (tomorrow 8 PM) ────────────────
-    final tomorrow8pm = now.add(const Duration(days: 1)).copyWith(hour: 20, minute: 0);
+    final tomorrow8pm =
+        now.add(const Duration(days: 1)).copyWith(hour: 20, minute: 0);
     await _scheduleAt(
       id: 1004,
       title: '📋 Log today\'s symptoms',
-      body: 'Track your mood, energy, and symptoms to get better cycle insights.',
+      body:
+          'Track your mood, energy, and symptoms to get better cycle insights.',
       scheduledDate: tomorrow8pm,
     );
 
@@ -168,21 +184,24 @@ class NotificationService {
     );
   }
 
+  static const int updateNotificationId = 9999;
+
   /// Shows an immediate system status bar notification when a NEW update is found.
-  /// Deduplicates so the user is only notified ONCE per version code release.
   static Future<void> showUpdateNotification({
     required String version,
     required int versionCode,
     String? releaseNotes,
+    bool force = false,
   }) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final lastNotifiedCode = prefs.getInt('kholo_last_notified_update_code') ?? 0;
+      final lastNotifiedCode =
+          prefs.getInt('kholo_last_notified_version_code') ?? 0;
 
-      // Only notify if this is a newer version code than the one previously notified
-      if (versionCode <= lastNotifiedCode) {
+      // Deduplicate unless forced
+      if (!force && versionCode <= lastNotifiedCode) {
         debugPrint(
-          '[NotificationService] Already notified for update versionCode: $versionCode (last: $lastNotifiedCode). Skipping notification.',
+          '[NotificationService] Already notified for update versionCode: $versionCode. Skipping.',
         );
         return;
       }
@@ -201,27 +220,32 @@ class NotificationService {
         color: Color(0xFF92003A),
         icon: '@mipmap/launcher_icon',
       );
-      const iosDetails = DarwinNotificationDetails(
-        presentAlert: true,
-        presentBadge: true,
-        presentSound: true,
-      );
-      const details = NotificationDetails(android: androidDetails, iOS: iosDetails);
+      const iosDetails =
+          DarwinNotificationDetails(presentAlert: true, presentBadge: true, presentSound: true);
+      const details =
+          NotificationDetails(android: androidDetails, iOS: iosDetails);
 
       await _plugin.show(
-        9999,
+        updateNotificationId,
         '🌸 নতুন KHOLO v$version আপডেট উপলব্ধ!',
-        releaseNotes != null && releaseNotes.isNotEmpty
-            ? 'নতুন আপডেটটি ডাউনলোড করতে ট্যাপ করুন।'
-            : 'নতুন ফিচারসমূহ উপভোগ করতে KHOLO আপডেট করুন।',
+        'নতুন আপডেটটি পেতে ট্যাপ করুন • Tap here to update now.',
         details,
+        payload: 'kholo_update',
       );
 
       // Mark this version code as notified so subsequent app opens will NOT spam the user
+      await prefs.setInt('kholo_last_notified_version_code', versionCode);
       await prefs.setInt('kholo_last_notified_update_code', versionCode);
     } catch (e) {
       debugPrint('[NotificationService] showUpdateNotification error: $e');
     }
+  }
+
+  /// Cancels any active in-app update notification (e.g. after update or dismissal)
+  static Future<void> cancelUpdateNotification() async {
+    try {
+      await _plugin.cancel(updateNotificationId);
+    } catch (_) {}
   }
 
   /// Cancel all scheduled KHOLO notifications.

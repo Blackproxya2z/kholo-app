@@ -1,18 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../../../app/theme/colors.dart';
+import '../../../../app/theme/colors.dart';
 
-/// Modal bottom sheet for editing numeric health baseline settings
-/// with tactile haptic feedback, safe boundaries, and informative tooltips.
+/// ─── LUXURY HEALTH BASELINE TACTILE SHEET ──────────────────────────────────
+///
+/// Features:
+/// 1. Smooth bottom sheet modal for editing baseline cycle/period length.
+/// 2. Live numeric display with GoogleFonts Playfair Display.
+/// 3. Tactile haptic feedback on discrete slider tick changes.
+/// 4. Supportive health context cards.
+/// 5. Full Dark & Light theme token support.
+/// ────────────────────────────────────────────────────────────────────────────
 class HealthBaselineSheet extends StatefulWidget {
   final String title;
   final String description;
+  final String tooltipText;
   final double initialValue;
   final double min;
   final double max;
   final String unit;
-  final String tooltipText;
   final IconData icon;
   final ValueChanged<int> onSave;
 
@@ -20,11 +27,11 @@ class HealthBaselineSheet extends StatefulWidget {
     super.key,
     required this.title,
     required this.description,
+    required this.tooltipText,
     required this.initialValue,
     required this.min,
     required this.max,
     required this.unit,
-    required this.tooltipText,
     required this.icon,
     required this.onSave,
   });
@@ -33,11 +40,11 @@ class HealthBaselineSheet extends StatefulWidget {
     BuildContext context, {
     required String title,
     required String description,
+    required String tooltipText,
     required double initialValue,
     required double min,
     required double max,
     required String unit,
-    required String tooltipText,
     required IconData icon,
     required ValueChanged<int> onSave,
   }) {
@@ -45,14 +52,14 @@ class HealthBaselineSheet extends StatefulWidget {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (sheetContext) => HealthBaselineSheet(
+      builder: (_) => HealthBaselineSheet(
         title: title,
         description: description,
+        tooltipText: tooltipText,
         initialValue: initialValue,
         min: min,
         max: max,
         unit: unit,
-        tooltipText: tooltipText,
         icon: icon,
         onSave: onSave,
       ),
@@ -70,7 +77,7 @@ class _HealthBaselineSheetState extends State<HealthBaselineSheet> {
   @override
   void initState() {
     super.initState();
-    _currentValue = widget.initialValue.clamp(widget.min, widget.max);
+    _currentValue = widget.initialValue.toDouble().clamp(widget.min, widget.max);
   }
 
   void _updateValue(double val) {
@@ -86,14 +93,14 @@ class _HealthBaselineSheetState extends State<HealthBaselineSheet> {
     final tt = Theme.of(context).textTheme;
 
     return Container(
-      decoration: const BoxDecoration(
-        color: KholoColors.canvas,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      decoration: BoxDecoration(
+        color: context.kCard,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
         boxShadow: [
           BoxShadow(
-            color: Color(0x2692003A),
+            color: KholoColors.wine.withValues(alpha: context.isDark ? 0.4 : 0.15),
             blurRadius: 24,
-            offset: Offset(0, -6),
+            offset: const Offset(0, -6),
           ),
         ],
       ),
@@ -114,7 +121,7 @@ class _HealthBaselineSheetState extends State<HealthBaselineSheet> {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: KholoColors.divider,
+                  color: context.kDivider,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -128,10 +135,15 @@ class _HealthBaselineSheetState extends State<HealthBaselineSheet> {
                   width: 44,
                   height: 44,
                   decoration: BoxDecoration(
-                    color: KholoColors.blush.withValues(alpha: 0.35),
+                    color: (context.isDark ? KholoColors.magenta : KholoColors.blush)
+                        .withValues(alpha: 0.35),
                     shape: BoxShape.circle,
                   ),
-                  child: Icon(widget.icon, color: KholoColors.wine, size: 22),
+                  child: Icon(
+                    widget.icon,
+                    color: context.isDark ? KholoColors.blush : KholoColors.wine,
+                    size: 22,
+                  ),
                 ),
                 const SizedBox(width: 14),
                 Expanded(
@@ -143,12 +155,12 @@ class _HealthBaselineSheetState extends State<HealthBaselineSheet> {
                         style: GoogleFonts.playfairDisplay(
                           fontSize: 20,
                           fontWeight: FontWeight.w700,
-                          color: KholoColors.ink,
+                          color: context.kInk,
                         ),
                       ),
                       Text(
                         widget.description,
-                        style: tt.bodySmall?.copyWith(color: KholoColors.inkMuted),
+                        style: tt.bodySmall?.copyWith(color: context.kInkMuted),
                       ),
                     ],
                   ),
@@ -156,7 +168,7 @@ class _HealthBaselineSheetState extends State<HealthBaselineSheet> {
                 IconButton(
                   icon: Icon(
                     _showTooltip ? Icons.info : Icons.info_outline_rounded,
-                    color: KholoColors.magenta,
+                    color: context.isDark ? KholoColors.magenta : KholoColors.wine,
                     size: 22,
                   ),
                   onPressed: () {
@@ -175,20 +187,28 @@ class _HealthBaselineSheetState extends State<HealthBaselineSheet> {
                 duration: const Duration(milliseconds: 200),
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: KholoColors.blush.withValues(alpha: 0.25),
+                  color: (context.isDark ? KholoColors.magenta : KholoColors.blush)
+                      .withValues(alpha: 0.25),
                   borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: KholoColors.magenta.withValues(alpha: 0.3)),
+                  border: Border.all(
+                    color: (context.isDark ? KholoColors.magenta : KholoColors.wine)
+                        .withValues(alpha: 0.3),
+                  ),
                 ),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Icon(Icons.favorite_rounded, color: KholoColors.magenta, size: 16),
+                    Icon(
+                      Icons.favorite_rounded,
+                      color: context.isDark ? KholoColors.magenta : KholoColors.wine,
+                      size: 16,
+                    ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         widget.tooltipText,
                         style: tt.bodySmall?.copyWith(
-                          color: KholoColors.wine,
+                          color: context.isDark ? KholoColors.blush : KholoColors.wine,
                           height: 1.45,
                           fontWeight: FontWeight.w500,
                         ),
@@ -213,13 +233,17 @@ class _HealthBaselineSheetState extends State<HealthBaselineSheet> {
                           style: GoogleFonts.playfairDisplay(
                             fontSize: 48,
                             fontWeight: FontWeight.w800,
-                            color: KholoColors.wine,
+                            color: context.isDark
+                                ? KholoColors.magenta
+                                : KholoColors.wine,
                           ),
                         ),
                         TextSpan(
                           text: ' ${widget.unit}',
                           style: tt.titleMedium?.copyWith(
-                            color: KholoColors.magenta,
+                            color: context.isDark
+                                ? KholoColors.blush
+                                : KholoColors.magenta,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -229,7 +253,7 @@ class _HealthBaselineSheetState extends State<HealthBaselineSheet> {
                   const SizedBox(height: 4),
                   Text(
                     'Typical range: ${widget.min.toInt()} – ${widget.max.toInt()} ${widget.unit}',
-                    style: tt.labelSmall?.copyWith(color: KholoColors.inkSubtle),
+                    style: tt.labelSmall?.copyWith(color: context.kInkSubtle),
                   ),
                 ],
               ),
@@ -240,12 +264,18 @@ class _HealthBaselineSheetState extends State<HealthBaselineSheet> {
             // Interactive Tactile Slider
             SliderTheme(
               data: SliderTheme.of(context).copyWith(
-                activeTrackColor: KholoColors.wine,
-                inactiveTrackColor: KholoColors.blush.withValues(alpha: 0.4),
-                thumbColor: KholoColors.wine,
+                activeTrackColor:
+                    context.isDark ? KholoColors.magenta : KholoColors.wine,
+                inactiveTrackColor: (context.isDark
+                        ? KholoColors.magenta
+                        : KholoColors.blush)
+                    .withValues(alpha: 0.35),
+                thumbColor:
+                    context.isDark ? KholoColors.magenta : KholoColors.wine,
                 overlayColor: KholoColors.magenta.withValues(alpha: 0.15),
                 trackHeight: 6,
-                thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 12),
+                thumbShape:
+                    const RoundSliderThumbShape(enabledThumbRadius: 12),
               ),
               child: Slider(
                 value: _currentValue,
@@ -263,7 +293,10 @@ class _HealthBaselineSheetState extends State<HealthBaselineSheet> {
               children: [
                 Expanded(
                   child: OutlinedButton(
-                    onPressed: () => Navigator.of(context).pop(),
+                    onPressed: () {
+                      HapticFeedback.selectionClick();
+                      Navigator.of(context).pop();
+                    },
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
@@ -282,7 +315,9 @@ class _HealthBaselineSheetState extends State<HealthBaselineSheet> {
                       Navigator.of(context).pop();
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: KholoColors.wine,
+                      backgroundColor: context.isDark
+                          ? KholoColors.magenta
+                          : KholoColors.wine,
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(

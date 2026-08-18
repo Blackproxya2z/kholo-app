@@ -46,18 +46,21 @@ enum LifeStage {
   notPregnant,
   tryingToConceive,
   pregnant,
-  postpartum;
+  postpartum,
+  wellnessAndSkincare;
 
   String get displayName {
     switch (this) {
       case LifeStage.notPregnant:
-        return 'Not pregnant';
+        return 'Track my cycle';
       case LifeStage.tryingToConceive:
         return 'Trying to conceive';
       case LifeStage.pregnant:
-        return 'Pregnant';
+        return 'Pregnancy journey';
       case LifeStage.postpartum:
-        return 'Postpartum';
+        return 'Baby care & postpartum';
+      case LifeStage.wellnessAndSkincare:
+        return 'Wellness & skincare';
     }
   }
 }
