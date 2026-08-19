@@ -54,7 +54,11 @@ class AppUpdate {
     final latestVer =
         (json['latest_version'] ?? json['latestVersion'] ?? '1.3.0').toString().trim();
 
-    final rawCode = json['version_code'] ?? json['versionCode'] ?? 20;
+    final rawCode = json['version_code'] ??
+        json['versionCode'] ??
+        json['build_number'] ??
+        json['buildNumber'] ??
+        20;
     final code =
         rawCode is int ? rawCode : int.tryParse(rawCode.toString()) ?? 20;
 
@@ -72,12 +76,12 @@ class AppUpdate {
 
     final title = (json['update_title'] ??
             json['updateTitle'] ??
-            'Your KHOLO experience has improved')
+            'New KHOLO Update Available 🌸')
         .toString().trim();
 
     final msg = (json['update_message'] ??
             json['updateMessage'] ??
-            'Please update to the latest version to continue using KHOLO safely.')
+            'A new version of KHOLO is ready. Update now to enjoy new features.')
         .toString().trim();
 
     // Handle releaseNotes whether it is a List<String> or a String
@@ -106,6 +110,8 @@ class AppUpdate {
             json['downloadUrl'] ??
             json['apk_url'] ??
             json['apkUrl'] ??
+            json['apkDownloadUrl'] ??
+            json['apk_download_url'] ??
             '')
         .toString().trim();
 
@@ -145,9 +151,16 @@ class AppUpdate {
         json['update_required'] ??
         json['updateRequired'];
 
-    final explicitForce = rawForce is bool
-        ? rawForce
-        : (rawForce?.toString().toLowerCase() == 'true');
+    final rawOptional = json['optional_update'] ?? json['optionalUpdate'];
+
+    final bool explicitForce;
+    if (rawOptional != null && (rawOptional is bool ? rawOptional : rawOptional.toString().toLowerCase() == 'true')) {
+      explicitForce = false;
+    } else {
+      explicitForce = rawForce is bool
+          ? rawForce
+          : (rawForce?.toString().toLowerCase() == 'true');
+    }
 
     return AppUpdate(
       latestVersion: latestVer,

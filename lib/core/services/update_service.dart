@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:crypto/crypto.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path_provider/path_provider.dart';
@@ -12,6 +13,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import '../models/app_update.dart';
 import 'notification_service.dart';
+import 'firebase_remote_config_service.dart';
+import 'firebase_crashlytics_service.dart';
+import 'firebase_analytics_service.dart';
 
 /// Custom exception thrown when an APK fails cryptographic checksum validation.
 class SecurityIntegrityException implements Exception {
@@ -138,37 +142,60 @@ class UpdateService {
     }
   }
 
-  /// Checks if a newer version is available.
+  /// Checks if a newer version is available from Remote Config or GitHub CDN.
   /// Returns [AppUpdate] if a newer release exists, null otherwise.
   static Future<AppUpdate?> checkForUpdate() async {
     try {
       final currentCode = await currentVersionCode();
       final currentName = await currentVersionName();
+      AppUpdate? candidateUpdate;
 
-      // Append timestamp cache-buster to bypass CDN edge caching
-      final cacheBuster = DateTime.now().millisecondsSinceEpoch;
-      final uri = Uri.parse('$versionManifestUrl?nocache=$cacheBuster');
+      // 1. Try fetching from GitHub CDN endpoint
+      try {
+        final cacheBuster = DateTime.now().millisecondsSinceEpoch;
+        final uri = Uri.parse('$versionManifestUrl?nocache=$cacheBuster');
+        final response = await http
+            .get(
+              uri,
+              headers: {
+                'Accept': 'application/json',
+                'Cache-Control': 'no-cache, no-store, must-revalidate',
+                'Pragma': 'no-cache',
+              },
+            )
+            .timeout(const Duration(seconds: 10));
 
-      final response = await http
-          .get(
-            uri,
-            headers: {
-              'Accept': 'application/json',
-              'Cache-Control': 'no-cache, no-store, must-revalidate',
-              'Pragma': 'no-cache',
-            },
-          )
-          .timeout(const Duration(seconds: 10));
-
-      if (response.statusCode != 200) {
-        debugPrint(
-            '[UpdateService] Failed to fetch manifest. Status: ${response.statusCode}');
-        return null;
+        if (response.statusCode == 200) {
+          final json = jsonDecode(response.body) as Map<String, dynamic>;
+          candidateUpdate = AppUpdate.fromJson(json);
+        }
+      } catch (e) {
+        debugPrint('[UpdateService] CDN fetch error, checking Remote Config fallback: $e');
       }
 
-      final json = jsonDecode(response.body) as Map<String, dynamic>;
-      final update = AppUpdate.fromJson(json);
+      // 2. Fallback to Firebase Remote Config if CDN is unreachable or older
+      try {
+        final remoteConfigUpdate = FirebaseRemoteConfigService.getRemoteAppUpdate();
+        if (candidateUpdate == null ||
+            remoteConfigUpdate.versionCode > candidateUpdate.versionCode) {
+          candidateUpdate = remoteConfigUpdate;
+        }
+      } catch (_) {}
 
+      // 3. Fallback to local asset version manifest if newer
+      try {
+        final assetString = await rootBundle.loadString('assets/version.json');
+        final assetJson = jsonDecode(assetString) as Map<String, dynamic>;
+        final assetUpdate = AppUpdate.fromJson(assetJson);
+        if (candidateUpdate == null ||
+            assetUpdate.versionCode > candidateUpdate.versionCode) {
+          candidateUpdate = assetUpdate;
+        }
+      } catch (_) {}
+
+      if (candidateUpdate == null) return null;
+
+      final update = candidateUpdate;
       debugPrint(
           '[UpdateService] Remote build: ${update.versionCode} (v${update.latestVersion}), Installed: $currentCode (v$currentName)');
 
@@ -185,8 +212,9 @@ class UpdateService {
 
       final effectiveApkUrl = update.effectiveApkUrl;
       return update.copyWith(apkUrl: effectiveApkUrl);
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint('[UpdateService] checkForUpdate error: $e');
+      FirebaseCrashlyticsService.recordNonFatalError(e, stack, reason: 'checkForUpdate failure');
       return null;
     }
   }
@@ -314,6 +342,10 @@ class UpdateService {
     }
 
     onStatusChange?.call('Connecting to secure KHOLO update server...');
+    FirebaseAnalyticsService.logUpdateEvent('update_download_started', parameters: {
+      'target_version': targetVersion ?? defaultVersionName,
+      'target_code': targetVersionCode ?? defaultVersionCode,
+    });
 
     Exception? lastError;
 
@@ -439,24 +471,45 @@ class UpdateService {
 
               if (!isValid) {
                 await finalFile.delete();
-                throw const SecurityIntegrityException(
+                const integrityEx = SecurityIntegrityException(
                   'APK checksum verification failed. The downloaded file signature does not match the official release.',
                 );
+                FirebaseCrashlyticsService.recordUpdateFailure(
+                  integrityEx,
+                  StackTrace.current,
+                  targetVersionCode: targetVersionCode ?? defaultVersionCode,
+                  stage: 'checksum_validation',
+                );
+                FirebaseAnalyticsService.logUpdateEvent('update_checksum_failed', parameters: {
+                  'target_code': targetVersionCode ?? defaultVersionCode,
+                });
+                throw integrityEx;
               }
             }
 
             onStatusChange?.call('Ready to install');
             debugPrint(
                 '[UpdateService] Download & validation successful: $finalApkPath');
+            FirebaseAnalyticsService.logUpdateEvent('update_download_completed', parameters: {
+              'target_version': targetVersion ?? defaultVersionName,
+              'target_code': targetVersionCode ?? defaultVersionCode,
+            });
             return finalApkPath;
           }
-        } catch (e) {
+        } catch (e, stack) {
           debugPrint(
               '[UpdateService] Download attempt $attempt failed from $currentUrl: $e');
           lastError = e is Exception ? e : Exception(e.toString());
           if (e is SecurityIntegrityException) {
             rethrow;
           }
+          FirebaseCrashlyticsService.recordUpdateFailure(
+            e,
+            stack,
+            targetVersionCode: targetVersionCode ?? defaultVersionCode,
+            stage: 'download_chunk',
+            details: 'endpoint: $currentUrl, attempt: $attempt',
+          );
         }
       }
     }
@@ -469,6 +522,9 @@ class UpdateService {
     }
 
     debugPrint('[UpdateService] All download attempts failed: $lastError');
+    FirebaseAnalyticsService.logUpdateEvent('update_download_failed', parameters: {
+      'target_code': targetVersionCode ?? defaultVersionCode,
+    });
     throw UpdateDownloadException(
       lastError?.toString() ?? 'Network connection closed prematurely.',
     );
@@ -497,6 +553,8 @@ class UpdateService {
         }
       }
 
+      FirebaseAnalyticsService.logUpdateEvent('update_install_triggered');
+
       final result = await OpenFilex.open(
         filePath,
         type: 'application/vnd.android.package-archive',
@@ -505,8 +563,14 @@ class UpdateService {
       debugPrint(
           '[UpdateService] OpenFilex result: ${result.type} - ${result.message}');
       return result.type == ResultType.done;
-    } catch (e) {
+    } catch (e, stack) {
       debugPrint('[UpdateService] installApk error: $e');
+      FirebaseCrashlyticsService.recordUpdateFailure(
+        e,
+        stack,
+        targetVersionCode: defaultVersionCode,
+        stage: 'install_launch',
+      );
       return false;
     }
   }

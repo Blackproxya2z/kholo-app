@@ -6,6 +6,8 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../../app/theme/colors.dart';
+import '../../core/services/firebase_crashlytics_service.dart';
+import '../../core/services/firebase_analytics_service.dart';
 
 /// ─── AI SMART SKIN SCANNER & WELLNESS COMPANION ─────────────────────────────
 ///
@@ -154,8 +156,12 @@ class _SkinScanScreenState extends State<SkinScanScreen>
           _cameraError = false;
         });
       }
-    } catch (e) {
-      debugPrint('[SkinScanScreen] Camera init error: $e');
+    } catch (e, stack) {
+      FirebaseCrashlyticsService.recordCameraCrash(
+        e,
+        stack,
+        details: 'Camera2 preview initialization failure in initCamera',
+      );
       if (mounted) {
         setState(() {
           _cameraError = true;
@@ -211,6 +217,11 @@ class _SkinScanScreenState extends State<SkinScanScreen>
     // Generate comprehensive, non-medical skin observations with calibrated confidence
     _confidenceScore = 96.4;
     _report = _generateSkinDiagnosticReport(_confidenceScore);
+
+    FirebaseAnalyticsService.logEvent('skin_scan_completed', parameters: {
+      'confidence_bracket': '90_100',
+      'source': 'camera2_scanner',
+    });
 
     HapticFeedback.heavyImpact();
     setState(() {

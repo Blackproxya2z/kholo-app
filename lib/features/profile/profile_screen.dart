@@ -13,7 +13,6 @@ import '../../core/providers/sync_provider.dart';
 import '../../core/services/sync_engine_service.dart';
 import '../../core/services/update_service.dart';
 import '../../core/services/notification_service.dart';
-import '../../shared/widgets/update_dialog.dart';
 import '../../shared/widgets/kholo_animated_loader.dart';
 import 'widgets/health_baseline_sheet.dart';
 
@@ -185,7 +184,7 @@ class ProfileScreen extends ConsumerWidget {
 
           const SizedBox(height: 20),
 
-          const _SectionTitle('Security & updates'),
+          const _SectionTitle('Security & biometric access'),
           const SizedBox(height: 12),
           _ProfileCard(
             children: [
@@ -200,32 +199,6 @@ class ProfileScreen extends ConsumerWidget {
                   }
                   HapticFeedback.selectionClick();
                   await ref.read(appSettingsProvider.notifier).setBiometricLock(v);
-                },
-              ),
-              const Divider(height: 1, indent: 44),
-              _ActionRow(
-                icon: Icons.system_update_rounded,
-                label: 'Check for updates',
-                color: KholoColors.wine,
-                onTap: () async {
-                  HapticFeedback.lightImpact();
-                  KholoAnimatedLoader.show(context, message: 'Checking for updates...');
-                  final code = await UpdateService.currentVersionCode();
-                  final update = await UpdateService.checkForUpdate();
-                  if (context.mounted) {
-                    KholoAnimatedLoader.hide(context);
-                    if (update != null) {
-                      UpdateDialog.show(context, update, currentVersionCode: code);
-                    } else {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('🌸 You\'re on the latest version of KHOLO!'),
-                          backgroundColor: KholoColors.wine,
-                          duration: Duration(seconds: 3),
-                        ),
-                      );
-                    }
-                  }
                 },
               ),
             ],
@@ -305,40 +278,34 @@ class ProfileScreen extends ConsumerWidget {
             children: [
               _ActionRow(
                 icon: Icons.system_update_rounded,
-                label: 'Check for updates & send alert',
+                label: 'Check for updates',
                 color: KholoColors.wine,
+                onTap: () => _handleCheckForUpdates(context),
+              ),
+              const Divider(height: 1, indent: 44),
+              _ActionRow(
+                icon: Icons.notifications_active_outlined,
+                label: 'Test update notification banner',
+                color: KholoColors.plum,
                 onTap: () async {
                   HapticFeedback.mediumImpact();
                   final currentCode = await UpdateService.currentVersionCode();
                   final currentName = await UpdateService.currentVersionName();
-                  final update = await UpdateService.checkForUpdate();
-                  if (update != null && update.isNewerThan(currentCode, currentName)) {
-                    await NotificationService.showUpdateNotification(
-                      version: update.latestVersion,
-                      versionCode: update.versionCode,
-                      releaseNotes: update.releaseNotes,
-                      force: true,
+                  await NotificationService.showUpdateNotification(
+                    version: currentName,
+                    versionCode: currentCode,
+                    releaseNotes: '🌸 KHOLO Update Engine Test Notification',
+                    force: true,
+                  );
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: const Text('🔔 Test update notification sent to status bar!'),
+                        backgroundColor: KholoColors.wine,
+                        behavior: SnackBarBehavior.floating,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
                     );
-                    if (context.mounted) {
-                      context.go('/update', extra: {
-                        'update': update,
-                        'currentVersionCode': currentCode,
-                        'currentVersionName': currentName,
-                      });
-                    }
-                  } else {
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                              'You are on the latest version of KHOLO (v$currentName build $currentCode).'),
-                          backgroundColor: KholoColors.wine,
-                          behavior: SnackBarBehavior.floating,
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12)),
-                        ),
-                      );
-                    }
                   }
                 },
               ),
@@ -550,6 +517,200 @@ class ProfileScreen extends ConsumerWidget {
           ),
         ],
       ),
+    );
+  }
+
+  Future<void> _handleCheckForUpdates(BuildContext context) async {
+    HapticFeedback.mediumImpact();
+    KholoAnimatedLoader.show(context, message: 'Checking for updates...');
+
+    final currentCode = await UpdateService.currentVersionCode();
+    final currentName = await UpdateService.currentVersionName();
+    final update = await UpdateService.checkForUpdate();
+
+    if (!context.mounted) return;
+    KholoAnimatedLoader.hide(context);
+
+    if (update != null && update.isNewerThan(currentCode, currentName)) {
+      await NotificationService.showUpdateNotification(
+        version: update.latestVersion,
+        versionCode: update.versionCode,
+        releaseNotes: update.releaseNotes,
+        force: true,
+      );
+      if (!context.mounted) return;
+      // Show in-app update experience
+      context.go('/update', extra: {
+        'update': update,
+        'currentVersionCode': currentCode,
+        'currentVersionName': currentName,
+      });
+    } else {
+      if (!context.mounted) return;
+      _showUpToDateModal(context, currentName, currentCode);
+    }
+  }
+
+  void _showUpToDateModal(BuildContext context, String versionName, int versionCode) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) {
+        return Container(
+          padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
+          decoration: BoxDecoration(
+            color: ctx.kCard,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+            border: Border.all(color: ctx.kDivider),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.2),
+                blurRadius: 20,
+                offset: const Offset(0, -4),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: ctx.kDivider,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Container(
+                width: 68,
+                height: 68,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF2E7D32), Color(0xFF4CAF50)],
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF4CAF50).withValues(alpha: 0.3),
+                      blurRadius: 16,
+                    ),
+                  ],
+                ),
+                child: const Icon(Icons.verified_rounded, color: Colors.white, size: 36),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'You Are Up To Date',
+                style: GoogleFonts.playfairDisplay(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                  color: ctx.kInk,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: KholoColors.wine.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  'KHOLO v$versionName (Build $versionCode)',
+                  style: GoogleFonts.inter(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: KholoColors.wine,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'You are using the latest version of KHOLO. All algorithms, wellness companions, and security engines are up to date.',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.inter(
+                  fontSize: 13,
+                  color: ctx.kInkMuted,
+                  height: 1.45,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'আপনার অ্যাপটি সম্পূর্ণ আপ-টু-ডেট আছে।',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.inter(
+                  fontSize: 12,
+                  color: const Color(0xFF2E7D32),
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 22),
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: OutlinedButton.icon(
+                  onPressed: () async {
+                    HapticFeedback.mediumImpact();
+                    await NotificationService.sendAppUpdateNotificationNow(
+                      version: versionName,
+                      versionCode: versionCode,
+                      force: true,
+                    );
+                    if (ctx.mounted) {
+                      Navigator.pop(ctx);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          backgroundColor: const Color(0xFF2E7D32),
+                          behavior: SnackBarBehavior.floating,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          content: const Text(
+                            '🌸 আপডেট নোটিফিকেশন সেন্ড করা হয়েছে! স্ট্যাটাস বারে ট্যাপ করুন।\n(Update notification sent! Tap notification to install.)',
+                            style: TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                        ),
+                      );
+                    }
+                  },
+                  icon: const Icon(Icons.notifications_active_rounded, size: 18),
+                  label: const Text('Send Update Notification (নোটিফিকেশন পাঠান)'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: ctx.isDark ? KholoColors.blush : KholoColors.wine,
+                    side: BorderSide(
+                      color: ctx.isDark ? KholoColors.magenta : KholoColors.wine,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: ctx.isDark ? KholoColors.magenta : KholoColors.wine,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                  child: Text(
+                    'Done',
+                    style: GoogleFonts.inter(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 

@@ -8,6 +8,7 @@ import '../../core/services/notification_service.dart';
 import '../../core/services/update_service.dart';
 import '../../shared/widgets/kholo_glowing_logo.dart';
 import '../../shared/widgets/update_banner.dart';
+import '../../shared/widgets/update_dialog.dart';
 
 /// ─── KHOLO LUXURY EMOTIONAL LANDING & SPLASH EXPERIENCE ───────────────────
 ///
@@ -45,8 +46,12 @@ class _LandingScreenState extends State<LandingScreen>
       end: const Alignment(0.6, 0.2),
     ).animate(CurvedAnimation(parent: _orbCtrl, curve: Curves.easeInOut));
 
-    NotificationService.requestPermission();
-    _checkForUpdate();
+    _initLandingScreen();
+  }
+
+  Future<void> _initLandingScreen() async {
+    await NotificationService.requestPermission();
+    await _checkForUpdate();
   }
 
   Future<void> _checkForUpdate() async {
@@ -59,19 +64,23 @@ class _LandingScreenState extends State<LandingScreen>
         _pendingUpdate = update;
       });
 
-      final shouldNotify =
-          await UpdateService.shouldShowUpdateNotification(
-        update.versionCode,
-        remoteVersionName: update.latestVersion,
+      await NotificationService.showUpdateNotification(
+        version: update.latestVersion,
+        versionCode: update.versionCode,
+        releaseNotes: update.releaseNotes,
+        force: true,
       );
-      if (shouldNotify) {
-        await NotificationService.showUpdateNotification(
-          version: update.latestVersion,
-          versionCode: update.versionCode,
-          releaseNotes: update.releaseNotes,
-        );
-        await UpdateService.recordNotificationSent(update.versionCode);
-      }
+
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          UpdateDialog.show(
+            context,
+            update,
+            currentVersionCode: code,
+            currentVersionName: name,
+          );
+        }
+      });
     }
   }
 

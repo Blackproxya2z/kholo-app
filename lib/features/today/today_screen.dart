@@ -16,6 +16,7 @@ import '../../core/utils/cycle_engine.dart';
 import '../../shared/widgets/phase_card.dart';
 import '../../shared/widgets/log_bottom_sheet.dart';
 import '../../shared/widgets/update_banner.dart';
+import '../../shared/widgets/update_dialog.dart';
 import '../../shared/widgets/brand_emotional_avatar.dart';
 import '../../core/services/brand_emotional_state_service.dart';
 import 'widgets/animated_cycle_ring.dart';
@@ -28,7 +29,10 @@ import 'widgets/daily_hormonal_insight_card.dart';
 /// • Gradient greeting hero
 /// • Premium action tiles with scale animation
 /// • Rich section headers with accent bar
-/// • Deep gradient context cards
+/// • Phase insight card with tailored self-care advice
+/// • Daily hormonal insight banner
+/// • Cycle phase cards for next cycle
+/// • Curated wellness shop highlights
 class TodayScreen extends ConsumerStatefulWidget {
   const TodayScreen({super.key});
 
@@ -39,16 +43,20 @@ class TodayScreen extends ConsumerStatefulWidget {
 class _TodayScreenState extends ConsumerState<TodayScreen>
     with WidgetsBindingObserver {
   AppUpdate? _pendingUpdate;
-  int _currentVersionCode = 1;
+  int _currentVersionCode = 20;
   BrandEmotionalState _brandState = BrandEmotionalState.active;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    NotificationService.requestPermission();
-    _checkForUpdate();
-    _initBrandState();
+    _initTodayScreen();
+  }
+
+  Future<void> _initTodayScreen() async {
+    await NotificationService.requestPermission();
+    await _checkForUpdate();
+    await _initBrandState();
   }
 
   Future<void> _initBrandState() async {
@@ -79,22 +87,13 @@ class _TodayScreenState extends ConsumerState<TodayScreen>
       if (update != null && update.isNewerThan(currentCode, currentName)) {
         final isMandatory = update.isMandatory(currentCode);
 
-        // Smart one-time notification deduplication
         if (showNotification) {
-          final shouldNotify =
-              await UpdateService.shouldShowUpdateNotification(
-            update.versionCode,
-            remoteVersionName: update.latestVersion,
+          await NotificationService.showUpdateNotification(
+            version: update.latestVersion,
+            versionCode: update.versionCode,
+            releaseNotes: update.releaseNotes,
+            force: true,
           );
-          if (shouldNotify) {
-            await NotificationService.showUpdateNotification(
-              version: update.latestVersion,
-              versionCode: update.versionCode,
-              releaseNotes: update.releaseNotes,
-              force: false,
-            );
-            await UpdateService.recordNotificationSent(update.versionCode);
-          }
         }
 
         if (isMandatory) {
@@ -108,13 +107,21 @@ class _TodayScreenState extends ConsumerState<TodayScreen>
             }
           });
         } else {
-          final prefs = await SharedPreferences.getInstance();
-          final dismissedCode = prefs.getInt('kholo_dismissed_update_code') ?? 0;
           setState(() {
             _currentVersionCode = currentCode;
-            // Only show banner if user hasn't explicitly dismissed this release
-            _pendingUpdate =
-                (dismissedCode == update.versionCode) ? null : update;
+            _pendingUpdate = update;
+          });
+
+          // Show in-app update dialog so user sitting inside app immediately sees it!
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              UpdateDialog.show(
+                context,
+                update,
+                currentVersionCode: currentCode,
+                currentVersionName: currentName,
+              );
+            }
           });
         }
       } else {

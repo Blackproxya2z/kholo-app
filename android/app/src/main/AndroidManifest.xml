@@ -2,18 +2,23 @@
 
     <!-- ── Core ─────────────────────────────────────────────────────────── -->
     <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
     <uses-permission android:name="android.permission.CAMERA"/>
     <uses-feature android:name="android.hardware.camera" android:required="false"/>
     <uses-feature android:name="android.hardware.camera.front" android:required="false"/>
 
     <!-- ── OTA In-App Updates ────────────────────────────────────────────── -->
-    <!-- Allow installing APKs downloaded from the internet -->
+    <!-- Allow installing APKs downloaded from the internet (Android 8+) -->
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES"/>
+    <!-- Allow foreground download service for reliable APK download -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC"/>
 
     <!-- ── Local Notifications ───────────────────────────────────────────── -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"/>
     <uses-permission android:name="android.permission.USE_EXACT_ALARM"/>
+    <!-- POST_NOTIFICATIONS required on Android 13+ (API 33+) -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <uses-permission android:name="android.permission.VIBRATE"/>
 
@@ -25,6 +30,7 @@
         android:label="KHOLO"
         android:name="${applicationName}"
         android:icon="@mipmap/launcher_icon">
+
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -47,6 +53,20 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
+
+        <!-- ── Firebase Cloud Messaging ─────────────────────────────────── -->
+        <!-- Default notification channel for FCM data messages on Android 8+ -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="kholo_updates_channel"/>
+        <!-- Default notification icon used by FCM push messages in system tray -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@mipmap/launcher_icon"/>
+        <!-- Default notification accent color (KHOLO Wine #92003A) -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_color"
+            android:resource="@color/kholo_wine"/>
 
         <!-- Notification broadcast receiver for scheduled alarms (flutter_local_notifications) -->
         <receiver

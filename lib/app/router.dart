@@ -19,12 +19,43 @@ import '../features/skin_scan/skin_scan_screen.dart';
 import '../features/update/mandatory_update_screen.dart';
 import '../core/models/app_update.dart';
 import '../shared/widgets/kholo_bottom_nav.dart';
+import '../core/services/firebase_analytics_service.dart';
+
+class _PrivacySafeAnalyticsObserver extends NavigatorObserver {
+  @override
+  void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    super.didPush(route, previousRoute);
+    _logScreen(route);
+  }
+
+  @override
+  void didReplace({Route<dynamic>? newRoute, Route<dynamic>? oldRoute}) {
+    super.didReplace(newRoute: newRoute, oldRoute: oldRoute);
+    if (newRoute != null) _logScreen(newRoute);
+  }
+
+  @override
+  void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    super.didPop(route, previousRoute);
+    if (previousRoute != null) _logScreen(previousRoute);
+  }
+
+  void _logScreen(Route<dynamic> route) {
+    final name = route.settings.name;
+    if (name != null && name.isNotEmpty) {
+      FirebaseAnalyticsService.logScreenView(name);
+    }
+  }
+}
 
 final routerProvider = Provider<GoRouter>((ref) {
   final auth = ref.watch(authProvider);
 
   return GoRouter(
     initialLocation: '/',
+    observers: [
+      _PrivacySafeAnalyticsObserver(),
+    ],
     redirect: (context, state) {
       final isLoggedIn = auth != null;
       final path = state.uri.path;
@@ -55,18 +86,9 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/update',
         pageBuilder: (context, state) {
           final extra = state.extra as Map<String, dynamic>?;
-          final update = extra?['update'] as AppUpdate? ??
-              const AppUpdate(
-                latestVersion: '1.3.0',
-                versionCode: 20,
-                releaseNotes:
-                    '🌸 নতুন ফিচার, পারফরম্যান্স ও সিকিউরিটি আপগ্রেড সহ KHOLO এর লেটেস্ট ভার্সন।',
-                apkUrl:
-                    'https://github.com/Blackproxya2z/kholo-app/releases/download/v1.3.0/app-release.apk',
-                forceUpdate: true,
-              );
-          final currentCode = extra?['currentVersionCode'] as int? ?? 20;
-          final currentName = extra?['currentVersionName'] as String? ?? '1.3.0';
+          final update = extra?['update'] as AppUpdate?;
+          final currentCode = extra?['currentVersionCode'] as int?;
+          final currentName = extra?['currentVersionName'] as String?;
           return _fade(
             state,
             MandatoryUpdateScreen(

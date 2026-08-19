@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 390 844" width="390" height="844" style="background:#FFFDFC; font-family:'Inter', sans-serif;">
+  <defs>
+    <linearGradient id="wineGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#92003A"/>
+      <stop offset="100%" stop-color="#F62477"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Top App Bar -->
+  <text x="24" y="56" font-family="'Playfair Display', serif" font-size="24" font-weight="700" fill="#92003A">Baby &amp; Postpartum</text>
+
+  <!-- Baby Profile Card -->
+  <g transform="translate(20, 80)">
+    <rect width="350" height="100" rx="24" fill="url(#wineGrad)"/>
+    <circle cx="56" cy="50" r="28" fill="#FFFFFF"/>
+    <text x="56" y="58" font-size="28" text-anchor="middle">👶</text>
+    <text x="100" y="42" font-size="18" font-weight="700" fill="#FFFFFF">Baby Aarav</text>
+    <text x="100" y="64" font-size="13" fill="#FFE0F4">6 months 2 days • 7.4 kg</text>
+  </g>
+
+  <!-- Activity Trackers Grid -->
+  <g transform="translate(20, 200)">
+    <rect width="168" height="110" rx="20" fill="#FFFFFF" stroke="#FFE5F3" stroke-width="1.5"/>
+    <circle cx="44" cy="40" r="18" fill="#FFF0FA"/>
+    <text x="44" y="46" font-size="18" text-anchor="middle">🍼</text>
+    <text x="24" y="74" font-size="14" font-weight="700" fill="#26101B">Feeding</text>
+    <text x="24" y="92" font-size="11" fill="#7A6472">Last: 120ml (2h ago)</text>
+  </g>
+
+  <g transform="translate(202, 200)">
+    <rect width="168" height="110" rx="20" fill="#FFFFFF" stroke="#FFE5F3" stroke-width="1.5"/>
+    <circle cx="44" cy="40" r="18" fill="#F3E8FF"/>
+    <text x="44" y="46" font-size="18" text-anchor="middle">🌙</text>
+    <text x="24" y="74" font-size="14" font-weight="700" fill="#26101B">Sleep Timer</text>
+    <text x="24" y="92" font-size="11" fill="#7A6472">Total: 4h 30m today</text>
+  </g>
+
+  <g transform="translate(20, 326)">
+    <rect width="168" height="110" rx="20" fill="#FFFFFF" stroke="#FFE5F3" stroke-width="1.5"/>
+    <circle cx="44" cy="40" r="18" fill="#FFF8F0"/>
+    <text x="44" y="46" font-size="18" text-anchor="middle">🧷</text>
+    <text x="24" y="74" font-size="14" font-weight="700" fill="#26101B">Diaper Log</text>
+    <text x="24" y="92" font-size="11" fill="#7A6472">5 wet, 2 dirty today</text>
+  </g>
+
+  <g transform="translate(202, 326)">
+    <rect width="168" height="110" rx="20" fill="#FFFFFF" stroke="#FFE5F3" stroke-width="1.5"/>
+    <circle cx="44" cy="40" r="18" fill="#E8F5E9"/>
+    <text x="44" y="46" font-size="18" text-anchor="middle">🎯</text>
+    <text x="24" y="74" font-size="14" font-weight="700" fill="#26101B">Milestones</text>
+    <text x="24" y="92" font-size="11" fill="#7A6472">Rolling over ✓</text>
+  </g>
+
+  <!-- Bottom Nav Bar -->
+  <g transform="translate(0, 764)">
+    <rect width="390" height="80" fill="#FFFFFF" stroke="#F5E8F0" stroke-width="1"/>
+    <!-- Baby Active -->
+    <rect x="174" y="8" width="60" height="32" rx="16" fill="#FFE0F4"/>
+    <text x="48" y="28" font-size="16" text-anchor="middle">📅</text>
+    <text x="48" y="52" font-size="11" font-weight="500" fill="#7A6472" text-anchor="middle">Today</text>
+    <text x="126" y="28" font-size="16" text-anchor="middle">🗓️</text>
+    <text x="126" y="52" font-size="11" font-weight="500" fill="#7A6472" text-anchor="middle">Cycle</text>
+    <text x="204" y="28" font-size="16" text-anchor="middle">👶</text>
+    <text x="204" y="52" font-size="11" font-weight="700" fill="#92003A" text-anchor="middle">Baby</text>
+    <text x="282" y="28" font-size="16" text-anchor="middle">🛍️</text>
+    <text x="282" y="52" font-size="11" font-weight="500" fill="#7A6472" text-anchor="middle">Shop</text>
+    <text x="350" y="28" font-size="16" text-anchor="middle">👤</text>
+    <text x="350" y="52" font-size="11" font-weight="500" fill="#7A6472" text-anchor="middle">Profile</text>
+  </g>
+</svg>

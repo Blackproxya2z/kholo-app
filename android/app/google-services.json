@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "928471629471",
+    "project_id": "kholo-health",
+    "storage_bucket": "kholo-health.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:928471629471:android:e84f932847291a84f92847",
+        "android_client_info": {
+          "package_name": "app.kholo.care"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD_kholo_production_firebase_api_key_placeholder"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

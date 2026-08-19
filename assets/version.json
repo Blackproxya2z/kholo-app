@@ -1,29 +1,29 @@
 {
-  "latestVersion": "1.3.0",
-  "latest_version": "1.3.0",
-  "versionCode": 20,
-  "version_code": 20,
+  "latestVersion": "1.3.1",
+  "latest_version": "1.3.1",
+  "versionCode": 21,
+  "version_code": 21,
   "minRequiredVersionCode": 1,
   "min_required_version_code": 1,
   "min_supported_version": "1.0.0",
-  "update_title": "নতুন KHOLO v1.3.0 রিলিজ!",
+  "update_title": "🌸 নতুন KHOLO v1.3.1 রিলিজ!",
   "update_message": "নতুন ফিচার এবং পারফরম্যান্স আপগ্রেড সহ KHOLO এর লেটেস্ট ভার্সন ইনস্টল করুন।",
-  "releaseNotes": "🌸 নতুন KHOLO v1.3.0 আপডেট!\n\n✨ নতুন ফিচারসমূহ:\n• 👶 বেবি কেয়ার ও পোস্টপার্টাম ট্র্যাকার (ফিডিং, স্লিপ, ডায়াপার, মাইলস্টোন)\n• 📷 AI রিয়েল-টাইম হলোগ্রাফিক স্কিন ডক্টর স্ক্যানার\n• 🔮 ব্র্যান্ড ইমোশনাল কেয়ার অবতার ও লাইভ স্ট্যাটাস\n• 🌙 লাক্সারি ডার্ক ও ভেলভেট ওয়াইন থিম\n\n⚡ পারফরম্যান্স ও সিকিউরিটি:\n• 🛡️ SHA-256 অ্যান্টি-ট্যাম্পার ফাইল ভেরিফিকেশন\n• 📦 জিরো-ক্যাশ ইন-অ্যাপ অটো-আপডেট ইঞ্জিন\n• 🔔 স্মার্ট ওয়ান-টাইম নোটিফিকেশন ডিডুপ্লিকেশন",
-  "release_notes": "🌸 নতুন KHOLO v1.3.0 আপডেট!\n\n✨ নতুন ফিচারসমূহ:\n• 👶 বেবি কেয়ার ও পোস্টপার্টাম ট্র্যাকার (ফিডিং, স্লিপ, ডায়াপার, মাইলস্টোন)\n• 📷 AI রিয়েল-টাইম হলোগ্রাফিক স্কিন ডক্টর স্ক্যানার\n• 🔮 ব্র্যান্ড ইমোশনাল কেয়ার অবতার ও লাইভ স্ট্যাটাস\n• 🌙 লাক্সারি ডার্ক ও ভেলভেট ওয়াইন থিম\n\n⚡ পারফরম্যান্স ও সিকিউরিটি:\n• 🛡️ SHA-256 অ্যান্টি-ট্যাম্পার ফাইল ভেরিফিকেশন\n• 📦 জিরো-ক্যাশ ইন-অ্যাপ অটো-আপডেট ইঞ্জিন\n• 🔔 স্মার্ট ওয়ান-টাইম নোটিফিকেশন ডিডুপ্লিকেশন",
-  "download_url": "https://github.com/Blackproxya2z/kholo-app/releases/download/v1.3.0/app-release.apk",
-  "apkUrl": "https://github.com/Blackproxya2z/kholo-app/releases/download/v1.3.0/app-release.apk",
+  "releaseNotes": "🌸 নতুন KHOLO v1.3.1 আপডেট!\n\n✨ নতুন ফিচারসমূহ:\n• 👶 বেবি কেয়ার ও পোস্টপার্টাম ট্র্যাকার (ফিডিং, স্লিপ, ডায়াপার, মাইলস্টোন)\n• 📷 AI রিয়েল-টাইম হলোগ্রাফিক স্কিন ডক্টর স্ক্যানার\n• 🔮 ব্র্যান্ড ইমোশনাল কেয়ার অবতার ও লাইভ স্ট্যাটাস\n• 🌙 লাক্সারি ডার্ক ও ভেলভেট ওয়াইন থিম\n\n⚡ পারফরম্যান্স ও সিকিউরিটি:\n• 🛡️ SHA-256 অ্যান্টি-ট্যাম্পার ফাইল ভেরিফিকেশন\n• 📦 জিরো-ক্যাশ ইন-অ্যাপ অটো-আপডেট ইঞ্জিন\n• 🔔 স্মার্ট ওয়ান-ট্যাপ নোটিফিকেশন ইনস্টলার",
+  "release_notes": "🌸 নতুন KHOLO v1.3.1 আপডেট!\n\n✨ নতুন ফিচারসমূহ:\n• 👶 বেবি কেয়ার ও পোস্টপার্টাম ট্র্যাকার (ফিডিং, স্লিপ, ডায়াপার, মাইলস্টোন)\n• 📷 AI রিয়েল-টাইম হলোগ্রাফিক স্কিন ডক্টর স্ক্যানার\n• 🔮 ব্র্যান্ড ইমোশনাল কেয়ার অবতার ও লাইভ স্ট্যাটাস\n• 🌙 লাক্সারি ডার্ক ও ভেলভেট ওয়াইন থিম\n\n⚡ পারফরম্যান্স ও সিকিউরিটি:\n• 🛡️ SHA-256 অ্যান্টি-ট্যাম্পার ফাইল ভেরিফিকেশন\n• 📦 জিরো-ক্যাশ ইন-অ্যাপ অটো-আপডেট ইঞ্জিন\n• 🔔 স্মার্ট ওয়ান-ট্যাপ নোটিফিকেশন ইনস্টলার",
+  "download_url": "https://raw.githubusercontent.com/Blackproxya2z/kholo-releases/main/app-release.apk",
+  "apkUrl": "https://raw.githubusercontent.com/Blackproxya2z/kholo-releases/main/app-release.apk",
   "mirror_urls": [
     "https://raw.githubusercontent.com/Blackproxya2z/kholo-releases/main/app-release.apk",
-    "https://github.com/Blackproxya2z/kholo-app/releases/download/v1.3.0/app-release.apk"
+    "https://github.com/Blackproxya2z/kholo-app/releases/download/v1.3.1/app-release.apk"
   ],
   "mirrorUrls": [
     "https://raw.githubusercontent.com/Blackproxya2z/kholo-releases/main/app-release.apk",
-    "https://github.com/Blackproxya2z/kholo-app/releases/download/v1.3.0/app-release.apk"
+    "https://github.com/Blackproxya2z/kholo-app/releases/download/v1.3.1/app-release.apk"
   ],
-  "file_size": 65860000,
-  "fileSize": 65860000,
-  "apk_sha256": "8b37a29abe1a1763f106df1acc57ecb45f0218d4cd2063c413208b2565e2804b",
-  "apkSha256": "8b37a29abe1a1763f106df1acc57ecb45f0218d4cd2063c413208b2565e2804b",
+  "file_size": 70245083,
+  "fileSize": 70245083,
+  "apk_sha256": "c54626a82f21befb326c3a08f91f0ab80e3b284454d03982ab55560b0c30fd07",
+  "apkSha256": "c54626a82f21befb326c3a08f91f0ab80e3b284454d03982ab55560b0c30fd07",
   "forceUpdate": false,
   "force_update": false
 }

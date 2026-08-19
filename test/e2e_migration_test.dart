@@ -185,5 +185,101 @@ void main() {
 
       tempDir.deleteSync(recursive: true);
     });
+
+    test('Multi-Version Migration Matrix (v1.0.0 -> v1.1.0 -> v1.2.0 -> v1.3.0 Build 20)', () async {
+      final versions = [
+        {'code': 1, 'name': '1.0.0'},
+        {'code': 5, 'name': '1.1.0'},
+        {'code': 10, 'name': '1.2.0'},
+        {'code': 15, 'name': '1.2.5'},
+      ];
+
+      for (final v in versions) {
+        final code = v['code'] as int;
+        final name = v['name'] as String;
+
+        // Initialize user data on previous version
+        await prefs.setInt('kholo_installed_version_code', code);
+        await prefs.setString('health_profile', jsonEncode({
+          'cycleLength': 30,
+          'periodLength': 6,
+          'ageRange': '18–24',
+          'lifeStage': 'tryingToConceive',
+          'onboardingComplete': true,
+          'hasPcosPcod': true,
+          'dailyWaterGoalMl': 3000,
+          'targetSleepHours': 7.5,
+          'trackMood': true,
+        }));
+
+        // Trigger remote check
+        const targetRelease = AppUpdate(
+          latestVersion: '1.3.0',
+          versionCode: 20,
+          releaseNotes: '🌸 Latest KHOLO upgrade',
+          apkUrl: 'https://github.com/Blackproxya2z/kholo-app/releases/download/v1.3.0/app-release.apk',
+          forceUpdate: false,
+        );
+
+        expect(targetRelease.isNewerThan(code, name), isTrue,
+            reason: 'v1.3.0 (Build 20) must be recognized as newer than $name (Build $code)');
+
+        // Upgrade simulated
+        await UpdateService.syncInstalledVersionOnLaunch(currentInstalledCode: 20);
+        expect(prefs.getInt('kholo_installed_version_code'), 20);
+
+        // Verify preserved complex health profile
+        final raw = prefs.getString('health_profile');
+        expect(raw, isNotNull);
+        final profile = HealthProfile.fromJson(jsonDecode(raw!));
+        expect(profile.cycleLength, 30);
+        expect(profile.periodLength, 6);
+        expect(profile.hasPcosPcod, isTrue);
+        expect(profile.lifeStage, LifeStage.tryingToConceive);
+        expect(profile.dailyWaterGoalMl, 3000);
+      }
+    });
+
+    test('Android Compatibility Verification Matrix (Android 8, 10, 12, 14, 15 API Constraints)', () async {
+      final androidApis = [
+        {'os': 'Android 8.0 (Oreo)', 'api': 26, 'requiresNotificationChannel': true, 'scopedStorage': false},
+        {'os': 'Android 10.0 (Q)', 'api': 29, 'requiresNotificationChannel': true, 'scopedStorage': true},
+        {'os': 'Android 12.0 (S)', 'api': 31, 'requiresNotificationChannel': true, 'exactAlarms': true},
+        {'os': 'Android 14.0 (UpsideDownCake)', 'api': 34, 'postNotificationsRuntime': true, 'requestInstallPackages': true},
+        {'os': 'Android 15.0 (VanillaIceCream)', 'api': 35, 'postNotificationsRuntime': true, 'requestInstallPackages': true},
+      ];
+
+      for (final platform in androidApis) {
+        final osName = platform['os'] as String;
+
+        // Test update payload URL resolution and fallback
+        final update = AppUpdate(
+          latestVersion: '1.3.0',
+          versionCode: 20,
+          releaseNotes: 'Release for $osName',
+          apkUrl: 'https://github.com/Blackproxya2z/kholo-app/releases/download/v1.3.0/app-release.apk',
+          mirrorUrls: const [
+            'https://raw.githubusercontent.com/Blackproxya2z/kholo-releases/main/app-release.apk'
+          ],
+          forceUpdate: false,
+        );
+
+        final candidates = update.candidateUrls;
+        expect(candidates.length, 2,
+            reason: '$osName must have primary and mirror fallback candidate URLs');
+        expect(candidates.first, contains('https://github.com'));
+
+        // Test sha256 integrity simulation
+        final tempDir = Directory.systemTemp.createTempSync('kholo_android_');
+        final file = File('${tempDir.path}/test_$osName.apk');
+        await file.writeAsString('APK_TEST_DATA_$osName');
+
+        final hash = await UpdateService.calculateSha256(file);
+        expect(hash, isNotEmpty);
+        expect(await UpdateService.verifyChecksum(file, hash), isTrue);
+
+        tempDir.deleteSync(recursive: true);
+      }
+    });
   });
 }

@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 390 844" width="390" height="844" style="background:#140B13; font-family:'Inter', sans-serif;">
+  <defs>
+    <linearGradient id="wineGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#92003A"/>
+      <stop offset="100%" stop-color="#F62477"/>
+    </linearGradient>
+    <linearGradient id="hudGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#F62477" stop-opacity="0.8"/>
+      <stop offset="100%" stop-color="#F62477" stop-opacity="0.0"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Top App Bar -->
+  <text x="24" y="56" font-family="'Playfair Display', serif" font-size="24" font-weight="700" fill="#FFFFFF">AI Skin Doctor</text>
+  <circle cx="356" cy="50" r="18" fill="#2E1A2B"/>
+  <text x="356" y="56" font-size="14" fill="#FFFFFF" text-anchor="middle">⚡</text>
+
+  <!-- Holographic Scanner Viewport -->
+  <g transform="translate(20, 80)">
+    <rect width="350" height="420" rx="32" fill="#21131E" stroke="#45223C" stroke-width="2"/>
+    
+    <!-- Reticle Corners -->
+    <path d="M40 80 H80 V40" stroke="#F62477" stroke-width="4" fill="none" stroke-linecap="round"/>
+    <path d="M310 80 H270 V40" stroke="#F62477" stroke-width="4" fill="none" stroke-linecap="round"/>
+    <path d="M40 340 H80 V380" stroke="#F62477" stroke-width="4" fill="none" stroke-linecap="round"/>
+    <path d="M310 340 H270 V380" stroke="#F62477" stroke-width="4" fill="none" stroke-linecap="round"/>
+
+    <!-- Center Laser Scanner -->
+    <line x1="40" y1="210" x2="310" y2="210" stroke="#F62477" stroke-width="3"/>
+    <rect x="40" y="150" width="270" height="60" fill="url(#hudGrad)"/>
+
+    <text x="175" y="320" font-size="14" font-weight="600" fill="#FFE185" text-anchor="middle">Scanning Face Symmetry &amp; Hydration...</text>
+  </g>
+
+  <!-- Scan CTA Button -->
+  <g transform="translate(20, 530)">
+    <rect width="350" height="60" rx="30" fill="url(#wineGrad)"/>
+    <text x="175" y="566" font-size="16" font-weight="700" fill="#FFFFFF" text-anchor="middle">📸 Take Scan &amp; Analyze</text>
+  </g>
+
+  <!-- Routine Recommendation Cards -->
+  <g transform="translate(20, 610)">
+    <rect width="350" height="130" rx="24" fill="#21131E" stroke="#45223C" stroke-width="1"/>
+    <text x="24" y="36" font-size="15" font-weight="700" fill="#FFFFFF">AM/PM Skincare Protocol</text>
+    <text x="24" y="60" font-size="12" fill="#C79DBE">• Gentle Hydrating Cleanser (AM/PM)</text>
+    <text x="24" y="80" font-size="12" fill="#C79DBE">• Niacinamide 5% Serum for Barrier Repair</text>
+    <text x="24" y="100" font-size="12" fill="#FFE185">• Broad Spectrum SPF 50+ Sunscreen</text>
+  </g>
+</svg>

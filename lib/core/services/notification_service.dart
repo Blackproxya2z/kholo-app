@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter/material.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
@@ -18,7 +19,22 @@ class NotificationService {
 
   static final _plugin = FlutterLocalNotificationsPlugin();
   static bool _initialized = false;
-  static ValueChanged<String>? onNotificationTap;
+  static ValueChanged<String>? _onNotificationTap;
+  static String? _pendingPayload;
+
+  /// Sets the callback for notification taps and dispatches any buffered launch payload
+  static set onNotificationTap(ValueChanged<String>? callback) {
+    _onNotificationTap = callback;
+    if (callback != null && _pendingPayload != null) {
+      final payload = _pendingPayload!;
+      _pendingPayload = null;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        callback(payload);
+      });
+    }
+  }
+
+  static ValueChanged<String>? get onNotificationTap => _onNotificationTap;
 
   static const _channelId = 'kholo_cycle';
   static const _channelName = 'Cycle & Health Reminders';
@@ -40,11 +56,33 @@ class NotificationService {
     await _plugin.initialize(
       const InitializationSettings(android: android, iOS: ios),
       onDidReceiveNotificationResponse: (NotificationResponse response) {
-        if (response.payload != null && response.payload!.isNotEmpty) {
-          onNotificationTap?.call(response.payload!);
+        final payload = response.payload;
+        if (payload != null && payload.isNotEmpty) {
+          if (_onNotificationTap != null) {
+            _onNotificationTap!(payload);
+          } else {
+            _pendingPayload = payload;
+          }
         }
       },
     );
+
+    // Retrieve cold start launch notification payload if app was opened via notification tap
+    try {
+      final launchDetails = await _plugin.getNotificationAppLaunchDetails();
+      if (launchDetails != null &&
+          launchDetails.didNotificationLaunchApp &&
+          launchDetails.notificationResponse?.payload != null) {
+        final payload = launchDetails.notificationResponse!.payload!;
+        if (_onNotificationTap != null) {
+          _onNotificationTap!(payload);
+        } else {
+          _pendingPayload = payload;
+        }
+      }
+    } catch (e) {
+      debugPrint('[NotificationService] getNotificationAppLaunchDetails error: $e');
+    }
 
     // Proactively register notification channels on Android
     if (Platform.isAndroid) {
@@ -77,7 +115,7 @@ class NotificationService {
     _initialized = true;
   }
 
-  /// Request notification permission on Android 13+.
+  /// Request notification permission on Android 13+ (API 33+) & iOS.
   static Future<bool> requestPermission() async {
     if (!Platform.isAndroid) return true;
     try {
@@ -85,7 +123,15 @@ class NotificationService {
           AndroidFlutterLocalNotificationsPlugin>();
       final granted =
           await androidPlugin?.requestNotificationsPermission() ?? false;
-      return granted;
+      if (granted) return true;
+
+      // Fallback via permission_handler for Android 13+ runtime dialog
+      final status = await Permission.notification.status;
+      if (!status.isGranted) {
+        final res = await Permission.notification.request();
+        return res.isGranted;
+      }
+      return status.isGranted;
     } catch (_) {
       return false;
     }
@@ -190,6 +236,8 @@ class NotificationService {
   static Future<void> showUpdateNotification({
     required String version,
     required int versionCode,
+    String? title,
+    String? message,
     String? releaseNotes,
     bool force = false,
   }) async {
@@ -209,7 +257,16 @@ class NotificationService {
       await init();
       await requestPermission();
 
-      const androidDetails = AndroidNotificationDetails(
+      final notifTitle = title?.trim().isNotEmpty == true
+          ? title!.trim()
+          : 'New KHOLO Update Available 🌸';
+      final notifBody = message?.trim().isNotEmpty == true
+          ? message!.trim()
+          : (releaseNotes?.trim().isNotEmpty == true
+              ? 'A new version of KHOLO is ready (v$version). Update now to enjoy new features:\n${releaseNotes!.trim().split('\n').first}'
+              : 'A new version of KHOLO is ready. Update now to enjoy new features.');
+
+      final androidDetails = AndroidNotificationDetails(
         'kholo_updates_channel',
         'KHOLO App Updates',
         channelDescription: 'Important updates and new features for KHOLO',
@@ -217,18 +274,26 @@ class NotificationService {
         priority: Priority.max,
         enableVibration: true,
         playSound: true,
-        color: Color(0xFF92003A),
+        channelShowBadge: true,
+        category: AndroidNotificationCategory.status,
+        visibility: NotificationVisibility.public,
+        color: const Color(0xFF92003A),
         icon: '@mipmap/launcher_icon',
+        styleInformation: BigTextStyleInformation(
+          notifBody,
+          contentTitle: notifTitle,
+          summaryText: 'KHOLO Update v$version',
+        ),
       );
       const iosDetails =
           DarwinNotificationDetails(presentAlert: true, presentBadge: true, presentSound: true);
-      const details =
+      final details =
           NotificationDetails(android: androidDetails, iOS: iosDetails);
 
       await _plugin.show(
         updateNotificationId,
-        '🌸 নতুন KHOLO v$version আপডেট উপলব্ধ!',
-        'নতুন আপডেটটি পেতে ট্যাপ করুন • Tap here to update now.',
+        notifTitle,
+        notifBody,
         details,
         payload: 'kholo_update',
       );
@@ -241,6 +306,24 @@ class NotificationService {
     }
   }
 
+  /// Convenience helper to trigger an immediate update notification with the latest build details
+  static Future<void> sendAppUpdateNotificationNow({
+    String? version,
+    int? versionCode,
+    String? releaseNotes,
+    bool force = true,
+  }) async {
+    await init();
+    await requestPermission();
+    await showUpdateNotification(
+      version: version ?? '1.3.0',
+      versionCode: versionCode ?? 20,
+      releaseNotes: releaseNotes ??
+          '🌸 নতুন ফিচার, পারফরম্যান্স ও সিকিউরিটি আপগ্রেড সহ KHOLO এর লেটেস্ট ভার্সন।',
+      force: force,
+    );
+  }
+
   /// Cancels any active in-app update notification (e.g. after update or dismissal)
   static Future<void> cancelUpdateNotification() async {
     try {
@@ -248,7 +331,38 @@ class NotificationService {
     } catch (_) {}
   }
 
-  /// Cancel all scheduled KHOLO notifications.
+  /// Display an immediate general or announcement notification
+  static Future<void> showSimpleNotification({
+    required String title,
+    required String body,
+    String? payload,
+  }) async {
+    try {
+      const androidDetails = AndroidNotificationDetails(
+        'kholo_updates_channel',
+        'KHOLO App Updates',
+        channelDescription: 'Important updates and announcements for KHOLO',
+        importance: Importance.high,
+        priority: Priority.high,
+        icon: '@mipmap/launcher_icon',
+      );
+      const details = NotificationDetails(
+        android: androidDetails,
+        iOS: DarwinNotificationDetails(presentAlert: true, presentSound: true),
+      );
+      await _plugin.show(
+        (DateTime.now().millisecondsSinceEpoch ~/ 1000) % 100000,
+        title,
+        body,
+        details,
+        payload: payload,
+      );
+    } catch (e) {
+      debugPrint('[NotificationService] showSimpleNotification error: $e');
+    }
+  }
+
+  /// Cancels all scheduled notifications.
   static Future<void> cancelAll() async {
     await _plugin.cancelAll();
   }

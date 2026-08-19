@@ -1,0 +1,120 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 390 844" width="390" height="844" style="background:#FFFDFC; font-family:'Inter', sans-serif;">
+  <defs>
+    <linearGradient id="wineGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#92003A"/>
+      <stop offset="100%" stop-color="#F62477"/>
+    </linearGradient>
+    <linearGradient id="blushGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFF0FA"/>
+      <stop offset="100%" stop-color="#FFE0F4"/>
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#92003A" flood-opacity="0.12"/>
+    </filter>
+  </defs>
+
+  <!-- Top App Bar -->
+  <text x="24" y="56" font-family="'Playfair Display', serif" font-size="24" font-weight="700" fill="#92003A" letter-spacing="1">KHOLO</text>
+  <circle cx="356" cy="50" r="18" fill="#FFF0FA"/>
+  <path d="M356 42 a 5 5 0 0 1 5 5 v 4 l 2 2 v 1 h -14 v -1 l 2 -2 v -4 a 5 5 0 0 1 5 -5" fill="#92003A"/>
+
+  <!-- Emotional Status Card -->
+  <g transform="translate(20, 80)" filter="url(#shadow)">
+    <rect width="350" height="96" rx="24" fill="url(#wineGrad)"/>
+    <circle cx="56" cy="48" r="28" fill="#FFFFFF" opacity="0.95"/>
+    <text x="56" y="55" font-size="24" text-anchor="middle">🌸</text>
+    <text x="100" y="42" font-size="14" fill="#FFE185" font-weight="500">Good afternoon 🌤</text>
+    <text x="100" y="66" font-size="18" font-weight="700" fill="#FFFFFF">Calm &amp; Radiant</text>
+    <rect x="280" y="24" width="48" height="48" rx="14" fill="#FFFFFF" opacity="0.2"/>
+    <text x="304" y="46" font-size="16" font-weight="700" fill="#FFFFFF" text-anchor="middle">18</text>
+    <text x="304" y="60" font-size="10" font-weight="600" fill="#FFFFFF" text-anchor="middle">AUG</text>
+  </g>
+
+  <!-- AI Skin Doctor Banner -->
+  <g transform="translate(20, 192)">
+    <rect width="350" height="68" rx="20" fill="#21131E"/>
+    <circle cx="48" cy="34" r="20" fill="url(#wineGrad)"/>
+    <text x="48" y="40" font-size="16" text-anchor="middle">📷</text>
+    <text x="80" y="30" font-size="14" font-weight="700" fill="#FFFFFF">AI স্কিন ডক্টর স্ক্যানার</text>
+    <rect x="195" y="18" width="38" height="16" rx="6" fill="#FFE185"/>
+    <text x="214" y="30" font-size="9" font-weight="700" fill="#5A0025" text-anchor="middle">NEW</text>
+    <text x="80" y="48" font-size="11" fill="#C79DBE">ক্যামেরায় ফেস স্ক্যান করে ইন্সট্যান্ট স্কিনকেয়ার পরামর্শ নিন</text>
+    <text x="330" y="38" font-size="16" fill="#F62477">›</text>
+  </g>
+
+  <!-- Cycle Ring & Personalised Card -->
+  <g transform="translate(20, 276)">
+    <rect width="350" height="210" rx="28" fill="url(#blushGrad)" stroke="#FFD1F4" stroke-width="1"/>
+    <text x="44" y="44" font-size="20">✨</text>
+    <text x="44" y="80" font-family="'Playfair Display', serif" font-size="20" font-weight="700" fill="#26101B">Personalise your dashboard</text>
+    <text x="44" y="106" font-size="12" fill="#7A6472" width="260">
+      <tspan x="44" dy="0">Add a few details to see your current phase,</tspan>
+      <tspan x="44" dy="16">fertile window estimate, and personalised insights.</tspan>
+    </text>
+    <!-- CTA Button -->
+    <rect x="44" y="142" width="180" height="46" rx="23" fill="#92003A"/>
+    <text x="134" y="170" font-size="14" font-weight="600" fill="#FFFFFF" text-anchor="middle">➔  Set up my profile</text>
+  </g>
+
+  <!-- Quick Actions -->
+  <text x="24" y="520" font-size="12" font-weight="800" fill="#92003A" letter-spacing="1.5">⚡ QUICK ACTIONS</text>
+  
+  <g transform="translate(20, 536)">
+    <rect width="168" height="76" rx="20" fill="#FFFFFF" stroke="#FFE5F3" stroke-width="1.5"/>
+    <circle cx="44" cy="38" r="18" fill="#FFF0FA"/>
+    <text x="44" y="44" font-size="16" text-anchor="middle">🩸</text>
+    <text x="74" y="43" font-size="14" font-weight="600" fill="#26101B">Log period</text>
+  </g>
+
+  <g transform="translate(202, 536)">
+    <rect width="168" height="76" rx="20" fill="#FFFFFF" stroke="#FFE5F3" stroke-width="1.5"/>
+    <circle cx="44" cy="38" r="18" fill="#F3E8FF"/>
+    <text x="44" y="44" font-size="16" text-anchor="middle">📅</text>
+    <text x="74" y="43" font-size="14" font-weight="600" fill="#26101B">View cycle</text>
+  </g>
+
+  <g transform="translate(20, 624)">
+    <rect width="168" height="76" rx="20" fill="#FFFFFF" stroke="#FFE5F3" stroke-width="1.5"/>
+    <circle cx="44" cy="38" r="18" fill="#FFF8F0"/>
+    <text x="44" y="44" font-size="16" text-anchor="middle">🛍️</text>
+    <text x="74" y="43" font-size="14" font-weight="600" fill="#26101B">Shop care</text>
+  </g>
+
+  <g transform="translate(202, 624)">
+    <rect width="168" height="76" rx="20" fill="#FFFFFF" stroke="#FFE5F3" stroke-width="1.5"/>
+    <circle cx="44" cy="38" r="18" fill="#FFFDF0"/>
+    <text x="44" y="44" font-size="16" text-anchor="middle">👶</text>
+    <text x="74" y="43" font-size="14" font-weight="600" fill="#26101B">Baby log</text>
+  </g>
+
+  <!-- Floating Action Button -->
+  <g transform="translate(230, 706)" filter="url(#shadow)">
+    <rect width="136" height="48" rx="24" fill="#92003A"/>
+    <text x="298" y="736" font-size="14" font-weight="600" fill="#FFFFFF" text-anchor="middle">＋ Log today</text>
+  </g>
+
+  <!-- Bottom Nav Bar -->
+  <g transform="translate(0, 764)">
+    <rect width="390" height="80" fill="#FFFFFF" stroke="#F5E8F0" stroke-width="1"/>
+    <!-- Today Active -->
+    <rect x="18" y="8" width="60" height="32" rx="16" fill="#FFE0F4"/>
+    <text x="48" y="28" font-size="16" text-anchor="middle">📅</text>
+    <text x="48" y="52" font-size="11" font-weight="700" fill="#92003A" text-anchor="middle">Today</text>
+
+    <!-- Cycle -->
+    <text x="126" y="28" font-size="16" text-anchor="middle">🗓️</text>
+    <text x="126" y="52" font-size="11" font-weight="500" fill="#7A6472" text-anchor="middle">Cycle</text>
+
+    <!-- Baby -->
+    <text x="204" y="28" font-size="16" text-anchor="middle">👶</text>
+    <text x="204" y="52" font-size="11" font-weight="500" fill="#7A6472" text-anchor="middle">Baby</text>
+
+    <!-- Shop -->
+    <text x="282" y="28" font-size="16" text-anchor="middle">🛍️</text>
+    <text x="282" y="52" font-size="11" font-weight="500" fill="#7A6472" text-anchor="middle">Shop</text>
+
+    <!-- Profile -->
+    <text x="350" y="28" font-size="16" text-anchor="middle">👤</text>
+    <text x="350" y="52" font-size="11" font-weight="500" fill="#7A6472" text-anchor="middle">Profile</text>
+  </g>
+</svg>

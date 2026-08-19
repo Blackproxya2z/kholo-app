@@ -1,0 +1,23 @@
+{
+  "latest_version": "1.3.0",
+  "version_code": 20,
+  "min_required_version_code": 1,
+  "min_supported_version": "1.0.0",
+  "update_title": "Your KHOLO experience has improved",
+  "update_message": "Experience upgraded cycle insights, AI skin companion speed, and zero-compromise on-device privacy.",
+  "release_notes": "🌸 What's New in KHOLO v1.3.0:\n• AI Skin Wellness Scanner with zero-latency face alignment\n• Resumable chunked APK download engine with auto-reconnect\n• 100% on-device private health storage (zero PHI cloud transmission)\n• Multi-baby growth timelines and developmental milestone logs\n• Modern Android 14/15 edge-to-edge support & notification security",
+  "benefits": [
+    "Enhanced on-device health privacy & encrypted baselines",
+    "Refined cycle & ovulation prediction algorithms",
+    "Interactive pregnancy kick counter & contraction timer",
+    "Multi-baby timeline logs & developmental milestones",
+    "Intelligent AI skin wellness companion with zero battery drain"
+  ],
+  "download_url": "https://github.com/Blackproxya2z/kholo-app/releases/download/v1.3.0/app-release.apk",
+  "mirror_urls": [
+    "https://raw.githubusercontent.com/Blackproxya2z/kholo-app/main/build/app/outputs/flutter-apk/app-release.apk"
+  ],
+  "apk_sha256": "C54626A82F21BEFB326C3A08F91F0AB80E3B284454D03982AB55560B0C30FD07",
+  "file_size": 70245083,
+  "force_update": false
+}

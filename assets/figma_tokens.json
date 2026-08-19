@@ -1,0 +1,112 @@
+{
+  "KHOLO_Design_System": {
+    "Color": {
+      "Brand": {
+        "Blush": {
+          "value": "#FFADEE",
+          "type": "color",
+          "description": "Primary highlight & soft luxury accent"
+        },
+        "Wine": {
+          "value": "#92003A",
+          "type": "color",
+          "description": "Dominant brand plum & primary CTA background"
+        },
+        "DeepPlum": {
+          "value": "#5A0025",
+          "type": "color",
+          "description": "Deep luxury plum for text and accents"
+        },
+        "Magenta": {
+          "value": "#F62477",
+          "type": "color",
+          "description": "Vibrant glowing magenta"
+        },
+        "WarmGold": {
+          "value": "#FFE185",
+          "type": "color",
+          "description": "Warm golden badge & baby care accent"
+        }
+      },
+      "LightMode": {
+        "Canvas": {
+          "value": "#FFFDFC",
+          "type": "color"
+        },
+        "Card": {
+          "value": "#FFFFFF",
+          "type": "color"
+        },
+        "CardElevated": {
+          "value": "#FFF7FA",
+          "type": "color"
+        },
+        "Border": {
+          "value": "#FFE5F3",
+          "type": "color"
+        },
+        "Ink": {
+          "value": "#26101B",
+          "type": "color"
+        },
+        "InkMuted": {
+          "value": "#7A6472",
+          "type": "color"
+        }
+      },
+      "DarkMode": {
+        "Canvas": {
+          "value": "#140B13",
+          "type": "color"
+        },
+        "Card": {
+          "value": "#21131E",
+          "type": "color"
+        },
+        "CardElevated": {
+          "value": "#2E1A2B",
+          "type": "color"
+        },
+        "Border": {
+          "value": "#45223C",
+          "type": "color"
+        },
+        "Ink": {
+          "value": "#FDE8F5",
+          "type": "color"
+        },
+        "InkMuted": {
+          "value": "#C79DBE",
+          "type": "color"
+        }
+      }
+    },
+    "Spacing": {
+      "xxs": { "value": "4px", "type": "spacing" },
+      "xs": { "value": "8px", "type": "spacing" },
+      "sm": { "value": "12px", "type": "spacing" },
+      "md": { "value": "16px", "type": "spacing" },
+      "lg": { "value": "20px", "type": "spacing" },
+      "xl": { "value": "24px", "type": "spacing" },
+      "xxl": { "value": "32px", "type": "spacing" },
+      "giant": { "value": "48px", "type": "spacing" }
+    },
+    "BorderRadius": {
+      "sm": { "value": "8px", "type": "borderRadius" },
+      "md": { "value": "14px", "type": "borderRadius" },
+      "lg": { "value": "20px", "type": "borderRadius" },
+      "xl": { "value": "28px", "type": "borderRadius" },
+      "pill": { "value": "999px", "type": "borderRadius" }
+    },
+    "Typography": {
+      "HeadingFont": {
+        "value": "Playfair Display",
+        "type": "fontFamilies"
+      },
+      "BodyFont": {
+        "value": "Inter",
+        "type": "fontFamilies"
+      }
+    }
+  }
+}
