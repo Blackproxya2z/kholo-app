@@ -18,7 +18,7 @@ class FirebaseService {
   static bool _initialized = false;
   static bool get isInitialized => _initialized;
 
-  /// Call once during main() startup
+  /// Call once during startup. Protected with timeout and total fault-tolerance.
   static Future<void> init() async {
     if (_initialized) return;
 
@@ -28,23 +28,28 @@ class FirebaseService {
         return;
       }
 
-      await Firebase.initializeApp();
+      await Firebase.initializeApp().timeout(const Duration(seconds: 4));
       _initialized = true;
       debugPrint('[FirebaseService] Firebase.initializeApp() success ✓');
 
-      // Initialize subservices in parallel
+      // Initialize subservices safely
       await Future.wait([
-        FirebaseCrashlyticsService.init(),
-        FirebaseMessagingService.init(),
-        FirebaseRemoteConfigService.init(),
-        FirebaseAnalyticsService.init(),
+        FirebaseCrashlyticsService.init().catchError((e) {
+          debugPrint('[CrashlyticsService] Init warning: $e');
+        }),
+        FirebaseMessagingService.init().catchError((e) {
+          debugPrint('[FCMService] Init warning: $e');
+        }),
+        FirebaseRemoteConfigService.init().catchError((e) {
+          debugPrint('[RemoteConfigService] Init warning: $e');
+        }),
+        FirebaseAnalyticsService.init().catchError((e) {
+          debugPrint('[AnalyticsService] Init warning: $e');
+        }),
       ]);
     } catch (e) {
       debugPrint('[FirebaseService] Firebase initialization warning (Fallback mode active): $e');
       _initialized = false;
-      // Initialize Crashlytics & RemoteConfig in fallback mode so app never crashes
-      await FirebaseCrashlyticsService.init();
-      await FirebaseRemoteConfigService.init();
     }
   }
 }

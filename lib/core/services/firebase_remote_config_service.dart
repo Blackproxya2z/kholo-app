@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_remote_config/firebase_remote_config.dart';
 import 'package:flutter/foundation.dart';
 import '../models/app_update.dart';
@@ -59,7 +60,10 @@ class FirebaseRemoteConfigService {
   /// Initialize Remote Config with default fallback parameters and cache interval
   static Future<void> init() async {
     try {
-      if (kIsWeb) return;
+      if (kIsWeb || Firebase.apps.isEmpty) {
+        _isAvailable = false;
+        return;
+      }
       final remoteConfig = FirebaseRemoteConfig.instance;
 
       await remoteConfig.setConfigSettings(

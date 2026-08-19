@@ -20,10 +20,10 @@
     "https://raw.githubusercontent.com/Blackproxya2z/kholo-releases/main/v1.4.0/app-release.apk",
     "https://github.com/Blackproxya2z/kholo-app/releases/download/v1.4.0/app-release.apk"
   ],
-  "file_size": 71180392,
-  "fileSize": 71180392,
-  "apk_sha256": "0453d4253feb885fb59b4d9177e95ec787a347e15f4b2f4a0950ee9256ae3e1b",
-  "apkSha256": "0453d4253feb885fb59b4d9177e95ec787a347e15f4b2f4a0950ee9256ae3e1b",
+  "file_size": 71196775,
+  "fileSize": 71196775,
+  "apk_sha256": "42c523c3ad7df260c5f0f1d9c614dcadeb40f76d28ff79a7f6f4ed3bdb55b9ea",
+  "apkSha256": "42c523c3ad7df260c5f0f1d9c614dcadeb40f76d28ff79a7f6f4ed3bdb55b9ea",
   "forceUpdate": false,
   "force_update": false
 }

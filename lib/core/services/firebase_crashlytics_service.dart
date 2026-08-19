@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 
 /// ─── PRIVACY-FIRST FIREBASE CRASHLYTICS SERVICE ─────────────────────────────
@@ -47,7 +48,10 @@ class FirebaseCrashlyticsService {
   /// Initialize Crashlytics hooks
   static Future<void> init() async {
     try {
-      if (kIsWeb) return;
+      if (kIsWeb || Firebase.apps.isEmpty) {
+        _isAvailable = false;
+        return;
+      }
       final crashlytics = FirebaseCrashlytics.instance;
 
       // Pass all uncaught errors from the framework to Crashlytics

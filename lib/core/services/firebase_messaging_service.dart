@@ -1,3 +1,4 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'notification_service.dart';
@@ -74,7 +75,10 @@ class FirebaseMessagingService {
   /// Initialize FCM listeners and topic subscriptions
   static Future<void> init() async {
     try {
-      if (kIsWeb) return;
+      if (kIsWeb || Firebase.apps.isEmpty) {
+        _isAvailable = false;
+        return;
+      }
       final messaging = FirebaseMessaging.instance;
 
       // Request notification permissions

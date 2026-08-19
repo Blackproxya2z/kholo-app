@@ -10,20 +10,17 @@ import 'core/services/firebase_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  final prefs = await SharedPreferences.getInstance();
 
-  // Initialize Firebase Production Infrastructure (Crashlytics, FCM, RemoteConfig)
-  await FirebaseService.init();
+  SharedPreferences prefs;
+  try {
+    prefs = await SharedPreferences.getInstance();
+  } catch (e) {
+    debugPrint('[main] SharedPreferences init fallback: $e');
+    SharedPreferences.setMockInitialValues({});
+    prefs = await SharedPreferences.getInstance();
+  }
 
-  // Sync installed version and clear old update artifacts
-  await UpdateService.syncInstalledVersionOnLaunch();
-
-  // Initialise local notifications before runApp
-  await NotificationService.init();
-
-  // Proactively check for newer release on launch and trigger system notification
-  UpdateService.performProactiveUpdateCheck(notifyUser: true);
-
+  // Launch the UI immediately so splash screen mounts in < 50ms
   runApp(
     ProviderScope(
       overrides: [
@@ -35,4 +32,33 @@ Future<void> main() async {
       child: const KholoApp(),
     ),
   );
+
+  // Initialize background services asynchronously without blocking app startup
+  _initAppServices();
+}
+
+Future<void> _initAppServices() async {
+  try {
+    await FirebaseService.init();
+  } catch (e) {
+    debugPrint('[main] FirebaseService.init error: $e');
+  }
+
+  try {
+    await NotificationService.init();
+  } catch (e) {
+    debugPrint('[main] NotificationService.init error: $e');
+  }
+
+  try {
+    await UpdateService.syncInstalledVersionOnLaunch();
+  } catch (e) {
+    debugPrint('[main] UpdateService.syncInstalledVersionOnLaunch error: $e');
+  }
+
+  try {
+    UpdateService.performProactiveUpdateCheck(notifyUser: true);
+  } catch (e) {
+    debugPrint('[main] UpdateService.performProactiveUpdateCheck error: $e');
+  }
 }
