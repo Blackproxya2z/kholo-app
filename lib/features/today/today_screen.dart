@@ -16,7 +16,6 @@ import '../../core/utils/cycle_engine.dart';
 import '../../shared/widgets/phase_card.dart';
 import '../../shared/widgets/log_bottom_sheet.dart';
 import '../../shared/widgets/update_banner.dart';
-import '../../shared/widgets/update_dialog.dart';
 import '../../shared/widgets/brand_emotional_avatar.dart';
 import '../../core/services/brand_emotional_state_service.dart';
 import 'widgets/animated_cycle_ring.dart';
@@ -91,7 +90,6 @@ class _TodayScreenState extends ConsumerState<TodayScreen>
         final isMandatory = update.isMandatory(currentCode);
         final prefs = await SharedPreferences.getInstance();
         final dismissedCode = prefs.getInt('kholo_dismissed_update_code') ?? 0;
-        final dialogShownCode = prefs.getInt('kholo_dialog_shown_version_code') ?? 0;
         final isDismissed = !isMandatory && dismissedCode >= update.versionCode;
 
         if (showNotification) {
@@ -127,21 +125,6 @@ class _TodayScreenState extends ConsumerState<TodayScreen>
             _currentVersionCode = currentCode;
             _pendingUpdate = isDismissed ? null : update;
           });
-
-          // Show in-app update dialog strictly ONCE per release version unless dismissed
-          if (!isDismissed && dialogShownCode < update.versionCode) {
-            await prefs.setInt('kholo_dialog_shown_version_code', update.versionCode);
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (mounted) {
-                UpdateDialog.show(
-                  context,
-                  update,
-                  currentVersionCode: currentCode,
-                  currentVersionName: currentName,
-                );
-              }
-            });
-          }
         }
       } else {
         setState(() {

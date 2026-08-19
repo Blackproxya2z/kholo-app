@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:go_router/go_router.dart';
 import '../../app/theme/colors.dart';
 import '../../core/models/app_update.dart';
-import 'update_dialog.dart';
 
 /// A dismissible in-app banner that appears at the top of the dashboard
 /// when a new app version is available.
@@ -77,11 +78,13 @@ class _UpdateBannerState extends State<UpdateBanner>
           borderRadius: BorderRadius.circular(18),
           child: InkWell(
             borderRadius: BorderRadius.circular(18),
-            onTap: () => UpdateDialog.show(
-              context,
-              widget.update,
-              currentVersionCode: widget.currentVersionCode,
-            ),
+            onTap: () {
+              HapticFeedback.selectionClick();
+              context.go('/update', extra: {
+                'update': widget.update,
+                'currentVersionCode': widget.currentVersionCode,
+              });
+            },
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 14, 8, 14),
               child: Row(
