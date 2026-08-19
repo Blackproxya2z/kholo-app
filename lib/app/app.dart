@@ -19,7 +19,7 @@ class _KholoAppState extends ConsumerState<KholoApp> {
   void initState() {
     super.initState();
     NotificationService.onNotificationTap = (payload) {
-      if (payload == 'kholo_update') {
+      if (payload == 'kholo_update' || payload == 'OPEN_UPDATE') {
         ref.read(routerProvider).go('/update');
       }
     };

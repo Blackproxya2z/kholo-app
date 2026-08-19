@@ -20,14 +20,16 @@ Future<void> kholoFirebaseMessagingBackgroundHandler(RemoteMessage message) asyn
   final data = message.data;
   final title = message.notification?.title ?? data['title'] ?? '🌸 New KHOLO Update Available';
   final body = message.notification?.body ?? data['body'] ?? 'KHOLO v1.4.0 is ready. Update now.';
-  final payload = data['payload'] ?? data['action'] ?? 'kholo_update';
+  final rawPayload = data['payload'] ?? data['action'] ?? data['click_action'] ?? 'kholo_update';
+  final isUpdate = rawPayload == 'kholo_update' || rawPayload == 'OPEN_UPDATE' || data['click_action'] == 'OPEN_UPDATE';
+  final payload = isUpdate ? 'kholo_update' : rawPayload;
 
   debugPrint('NOTIFICATION RECEIVED (Background): ID=${message.messageId}, Title=$title, Payload=$payload');
 
   // Ensure notification engine is initialized in background isolate
   await NotificationService.init();
 
-  if (payload == 'kholo_update') {
+  if (isUpdate) {
     final version = data['latest_version'] ?? '1.4.0';
     final code = int.tryParse(data['version_code']?.toString() ?? '22') ?? 22;
     await NotificationService.showUpdateNotification(
@@ -93,11 +95,13 @@ class FirebaseMessagingService {
         final data = message.data;
         final title = message.notification?.title ?? data['title'] ?? '🌸 New KHOLO Update Available';
         final body = message.notification?.body ?? data['body'] ?? 'KHOLO v1.4.0 is ready. Update now.';
-        final payload = data['payload'] ?? data['action'] ?? 'kholo_update';
+        final rawPayload = data['payload'] ?? data['action'] ?? data['click_action'] ?? 'kholo_update';
+        final isUpdate = rawPayload == 'kholo_update' || rawPayload == 'OPEN_UPDATE' || data['click_action'] == 'OPEN_UPDATE';
+        final payload = isUpdate ? 'kholo_update' : rawPayload;
 
         debugPrint('NOTIFICATION RECEIVED (Foreground): Title=$title, Body=$body, Payload=$payload');
 
-        if (payload == 'kholo_update') {
+        if (isUpdate) {
           final version = data['latest_version'] ?? '1.4.0';
           final code = int.tryParse(data['version_code']?.toString() ?? '22') ?? 22;
           await NotificationService.showUpdateNotification(
@@ -132,7 +136,8 @@ class FirebaseMessagingService {
 
       // Handle notification opened app event (from background state)
       FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
-        final payload = message.data['payload'] ?? message.data['action'] ?? 'kholo_update';
+        final raw = message.data['payload'] ?? message.data['action'] ?? message.data['click_action'] ?? 'kholo_update';
+        final payload = (raw == 'OPEN_UPDATE' || raw == 'kholo_update' || message.data['click_action'] == 'OPEN_UPDATE') ? 'kholo_update' : raw;
         debugPrint('NOTIFICATION OPENED (Background Resume): Action=$payload, Data=${message.data}');
         NotificationService.onNotificationTap?.call(payload);
       });
@@ -141,7 +146,8 @@ class FirebaseMessagingService {
       try {
         final initialMessage = await messaging.getInitialMessage();
         if (initialMessage != null) {
-          final payload = initialMessage.data['payload'] ?? initialMessage.data['action'] ?? 'kholo_update';
+          final raw = initialMessage.data['payload'] ?? initialMessage.data['action'] ?? initialMessage.data['click_action'] ?? 'kholo_update';
+          final payload = (raw == 'OPEN_UPDATE' || raw == 'kholo_update' || initialMessage.data['click_action'] == 'OPEN_UPDATE') ? 'kholo_update' : raw;
           debugPrint('NOTIFICATION OPENED (Cold Start Launch): Action=$payload, Data=${initialMessage.data}');
           NotificationService.onNotificationTap?.call(payload);
         }
