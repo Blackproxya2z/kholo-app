@@ -69,7 +69,11 @@ class _BloomSearchScreenState extends ConsumerState<BloomSearchScreen> {
           color: context.kInk,
           onPressed: () {
             ref.read(bloomSearchQueryProvider.notifier).state = '';
-            context.pop();
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go('/bloom');
+            }
           },
         ),
         title: Container(

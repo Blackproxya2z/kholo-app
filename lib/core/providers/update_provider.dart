@@ -28,8 +28,8 @@ class UpdateState {
   const UpdateState({
     this.status = UpdateStatus.idle,
     this.update,
-    this.currentVersionCode = 20,
-    this.currentVersionName = '1.3.0',
+    this.currentVersionCode = UpdateService.defaultVersionCode,
+    this.currentVersionName = UpdateService.defaultVersionName,
     this.downloadProgress = 0.0,
     this.statusMessage = '',
     this.errorMessage,

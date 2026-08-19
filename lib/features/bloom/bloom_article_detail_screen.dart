@@ -104,7 +104,11 @@ class _BloomArticleDetailScreenState
                   ),
                   onPressed: () {
                     HapticFeedback.selectionClick();
-                    context.pop();
+                    if (context.canPop()) {
+                      context.pop();
+                    } else {
+                      context.go('/bloom');
+                    }
                   },
                 ),
                 actions: [

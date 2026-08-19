@@ -142,7 +142,7 @@ void main() {
     test('UpdateNotifier state management initializes with correct version', () async {
       final notifier = UpdateNotifier();
       expect(notifier.state.currentVersionCode, UpdateService.defaultVersionCode);
-      expect(notifier.state.currentVersionName, '1.3.0');
+      expect(notifier.state.currentVersionName, UpdateService.defaultVersionName);
       expect(notifier.state.status, UpdateStatus.idle);
     });
 

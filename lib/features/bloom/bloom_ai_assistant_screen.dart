@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../app/theme/colors.dart';
 import '../../core/models/bloom_models.dart';
@@ -63,6 +64,18 @@ class _BloomAiAssistantScreenState
         backgroundColor: context.kCanvas,
         elevation: 0,
         scrolledUnderElevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_rounded),
+          color: context.kInk,
+          onPressed: () {
+            HapticFeedback.selectionClick();
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go('/bloom');
+            }
+          },
+        ),
         title: Row(
           children: [
             Container(
