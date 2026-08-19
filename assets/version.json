@@ -1,29 +1,29 @@
 {
-  "latestVersion": "1.4.0",
-  "latest_version": "1.4.0",
-  "versionCode": 22,
-  "version_code": 22,
+  "latestVersion": "1.4.1",
+  "latest_version": "1.4.1",
+  "versionCode": 23,
+  "version_code": 23,
   "minRequiredVersionCode": 1,
   "min_required_version_code": 1,
   "min_supported_version": "1.0.0",
-  "update_title": "🌸 নতুন KHOLO Bloom Health Hub v1.4.0 রিলিজ!",
-  "update_message": "AI চালিত রিয়েলটাইম হেলথ কনটেন্ট প্ল্যাটফর্ম, বাংলা ও ইংরেজি সার্চ এবং KHOLO AI Health Guide সহ নতুন ভার্সন ইনস্টল করুন।",
-  "releaseNotes": "🌸 নতুন KHOLO v1.4.0 — Bloom Health Hub রিলিজ!\n\n✨ নতুন ফিচারসমূহ:\n• 🌸 KHOLO Bloom Health Hub (দৈনন্দিন স্বাস্থ্য শিক্ষা ও আবিষ্কার)\n• 🧠 AI পারসোনালাইজড হেলথ ফিড (জীবন পর্যায় ও সাইকেল ভিত্তিক)\n• 🔍 রিয়েল-টাইম বাইলিঙ্গুয়াল হেলথ সার্চ ইঞ্জিন (বাংলা ও ইংরেজি)\n• 💬 KHOLO AI Health Guide (ক্লিনিক্যাল স্বাস্থ্য সহকারী)\n• 🌟 দৈনিক স্বাস্থ্য কার্ড, স্ট্রিক ও অফলাইন বুকমার্কস\n• 🌐 তাৎক্ষণিক ভাষা পরিবর্তন (বাংলা ⇄ English)\n\n⚡ পারফরম্যান্স ও সিকিউরিটি:\n• 🛡️ WHO/NHS/ACOG ভেরিফاید মেডিকেল তথ্যসূত্র\n• 📦 ১০০% অফলাইন ক্যাশিং ও রেজিলিয়েন্ট ডাউনলোড",
-  "release_notes": "🌸 নতুন KHOLO v1.4.0 — Bloom Health Hub রিলিজ!\n\n✨ নতুন ফিচারসমূহ:\n• 🌸 KHOLO Bloom Health Hub (দৈনন্দিন স্বাস্থ্য শিক্ষা ও আবিষ্কার)\n• 🧠 AI পারসোনালাইজড হেলথ ফিড (জীবন পর্যায় ও সাইকেল ভিত্তিক)\n• 🔍 রিয়েল-টাইম বাইলিঙ্গুয়াল হেলথ সার্চ ইঞ্জিন (বাংলা ও ইংরেজি)\n• 💬 KHOLO AI Health Guide (ক্লিনিক্যাল স্বাস্থ্য সহকারী)\n• 🌟 দৈনিক স্বাস্থ্য কার্ড, স্ট্রিক ও অফলাইন বুকমার্কস\n• 🌐 তাৎক্ষণিক ভাষা পরিবর্তন (বাংলা ⇄ English)\n\n⚡ পারফরম্যান্স ও সিকিউরিটি:\n• 🛡️ WHO/NHS/ACOG ভেরিফاید মেডিকেল তথ্যসূত্র\n• 📦 ১০০% অফলাইন ক্যাশিং ও রেজিলিয়েন্ট ডাউনলোড",
-  "download_url": "https://github.com/Blackproxya2z/kholo-app/releases/download/v1.4.0/app-release.apk",
-  "apkUrl": "https://github.com/Blackproxya2z/kholo-app/releases/download/v1.4.0/app-release.apk",
+  "update_title": "🌸 নতুন KHOLO Bloom Health Hub v1.4.1 আপডেট!",
+  "update_message": "মোবাইল ক্র্যাশ ফিক্স, ফাস্ট স্টার্টআপ ও AI পারসোনালাইজড হেলথ প্ল্যাটফর্ম সহ আপডেট করুন।",
+  "releaseNotes": "🌸 নতুন KHOLO v1.4.1 — ফাস্ট স্টার্টআপ ও স্টেবিলিটি রিলিজ!\n\n✨ নতুন ফিক্স ও ফিচারসমূহ:\n• ⚡ ইনস্ট্যান্ট মোবাইল স্টার্টআপ ফিক্স (< 50ms ফাস্ট লঞ্চ)\n• 🌸 KHOLO Bloom Health Hub (দৈনন্দিন স্বাস্থ্য শিক্ষা ও আবিষ্কার)\n• 🧠 AI পারসোনালাইজড হেলথ ফিড (জীবন পর্যায় ও সাইকেল ভিত্তিক)\n• 🔍 রিয়েল-টাইম বাইলিঙ্গুয়াল হেলথ সার্চ ইঞ্জিন (বাংলা ও ইংরেজি)\n• 💬 KHOLO AI Health Guide (ক্লিনিক্যাল স্বাস্থ্য সহকারী)\n• 🌟 দৈনিক স্বাস্থ্য কার্ড, স্ট্রিক ও অফলাইন বুকমার্কস\n• 🌐 তাৎক্ষণিক ভাষা পরিবর্তন (বাংলা ⇄ English)\n\n⚡ পারফরম্যান্স ও সিকিউরিটি:\n• 🛡️ WHO/NHS/ACOG ভেরিফاید মেডিকেল তথ্যসূত্র\n• 📦 ১০০% অফলাইন ক্যাশিং ও রেজিলিয়েন্ট ডাউনলোড",
+  "release_notes": "🌸 নতুন KHOLO v1.4.1 — ফাস্ট স্টার্টআপ ও স্টেবিলিটি রিলিজ!\n\n✨ নতুন ফিক্স ও ফিচারসমূহ:\n• ⚡ ইনস্ট্যান্ট মোবাইল স্টার্টআপ ফিক্স (< 50ms ফাস্ট লঞ্চ)\n• 🌸 KHOLO Bloom Health Hub (দৈনন্দিন স্বাস্থ্য শিক্ষা ও আবিষ্কার)\n• 🧠 AI পারসোনালাইজড হেলথ ফিড (জীবন পর্যায় ও সাইকেল ভিত্তিক)\n• 🔍 রিয়েল-টাইম বাইলিঙ্গুয়াল হেলথ সার্চ ইঞ্জিন (বাংলা ও ইংরেজি)\n• 💬 KHOLO AI Health Guide (ক্লিনিক্যাল স্বাস্থ্য সহকারী)\n• 🌟 দৈনিক স্বাস্থ্য কার্ড, স্ট্রিক ও অফলাইন বুকমার্কস\n• 🌐 তাৎক্ষণিক ভাষা পরিবর্তন (বাংলা ⇄ English)\n\n⚡ পারফরম্যান্স ও সিকিউরিটি:\n• 🛡️ WHO/NHS/ACOG ভেরিফاید মেডিকেল তথ্যসূত্র\n• 📦 ১০০% অফলাইন ক্যাশিং ও রেজিলিয়েন্ট ডাউনলোড",
+  "download_url": "https://github.com/Blackproxya2z/kholo-app/releases/download/v1.4.1/app-release.apk",
+  "apkUrl": "https://github.com/Blackproxya2z/kholo-app/releases/download/v1.4.1/app-release.apk",
   "mirror_urls": [
-    "https://raw.githubusercontent.com/Blackproxya2z/kholo-releases/main/v1.4.0/app-release.apk",
-    "https://github.com/Blackproxya2z/kholo-app/releases/download/v1.4.0/app-release.apk"
+    "https://raw.githubusercontent.com/Blackproxya2z/kholo-releases/main/v1.4.1/app-release.apk",
+    "https://github.com/Blackproxya2z/kholo-app/releases/download/v1.4.1/app-release.apk"
   ],
   "mirrorUrls": [
-    "https://raw.githubusercontent.com/Blackproxya2z/kholo-releases/main/v1.4.0/app-release.apk",
-    "https://github.com/Blackproxya2z/kholo-app/releases/download/v1.4.0/app-release.apk"
+    "https://raw.githubusercontent.com/Blackproxya2z/kholo-releases/main/v1.4.1/app-release.apk",
+    "https://github.com/Blackproxya2z/kholo-app/releases/download/v1.4.1/app-release.apk"
   ],
-  "file_size": 71196775,
-  "fileSize": 71196775,
-  "apk_sha256": "42c523c3ad7df260c5f0f1d9c614dcadeb40f76d28ff79a7f6f4ed3bdb55b9ea",
-  "apkSha256": "42c523c3ad7df260c5f0f1d9c614dcadeb40f76d28ff79a7f6f4ed3bdb55b9ea",
+  "file_size": 71196774,
+  "fileSize": 71196774,
+  "apk_sha256": "f0fbee6a6037bd20741556f32a08bdf06a729222e0a5d04506a25d2720b228fd",
+  "apkSha256": "f0fbee6a6037bd20741556f32a08bdf06a729222e0a5d04506a25d2720b228fd",
   "forceUpdate": false,
   "force_update": false
 }

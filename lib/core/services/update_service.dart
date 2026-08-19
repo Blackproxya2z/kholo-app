@@ -71,8 +71,8 @@ class UpdateService {
   UpdateService._();
 
   /// Default fallback build code when PackageInfo is unavailable (e.g. unit tests)
-  static const int defaultVersionCode = 22;
-  static const String defaultVersionName = '1.4.0';
+  static const int defaultVersionCode = 23;
+  static const String defaultVersionName = '1.4.1';
 
   /// Gets current installed app version code (build number, e.g. 20).
   static Future<int> currentVersionCode() async {

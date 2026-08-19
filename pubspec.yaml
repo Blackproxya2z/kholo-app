@@ -1,7 +1,7 @@
 name: kholo
 description: "KHOLO — One calm home for body, baby, and everyday care."
 publish_to: 'none'
-version: 1.4.0+22
+version: 1.4.1+23
 
 environment:
   sdk: ^3.5.0
