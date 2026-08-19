@@ -16,6 +16,7 @@ Future<void> main() async {
     prefs = await SharedPreferences.getInstance();
   } catch (e) {
     debugPrint('[main] SharedPreferences init fallback: $e');
+    // ignore: invalid_use_of_visible_for_testing_member
     SharedPreferences.setMockInitialValues({});
     prefs = await SharedPreferences.getInstance();
   }

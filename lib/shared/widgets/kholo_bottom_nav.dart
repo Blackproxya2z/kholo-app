@@ -18,7 +18,7 @@ class KholoBottomNav extends ConsumerStatefulWidget {
   const KholoBottomNav({super.key, required this.child});
   final Widget child;
 
-  static const _routes = ['/app', '/cycle', '/baby', '/shop', '/profile'];
+  static const _routes = ['/app', '/cycle', '/bloom', '/shop', '/profile'];
 
   @override
   ConsumerState<KholoBottomNav> createState() => _KholoBottomNavState();
@@ -174,10 +174,11 @@ class _KholoNavBar extends StatelessWidget {
                 onTap: () => onTap(1),
               ),
               _NavItem(
-                icon: Icons.child_care_outlined,
-                activeIcon: Icons.child_care_rounded,
-                label: 'Baby',
+                icon: Icons.local_florist_outlined,
+                activeIcon: Icons.local_florist_rounded,
+                label: 'Bloom',
                 isActive: currentIndex == 2,
+                isHighlight: true,
                 onTap: () => onTap(2),
               ),
               _NavItem(
@@ -211,6 +212,7 @@ class _NavItem extends StatelessWidget {
     required this.isActive,
     required this.onTap,
     this.badge,
+    this.isHighlight = false,
   });
 
   final IconData icon;
@@ -219,6 +221,7 @@ class _NavItem extends StatelessWidget {
   final bool isActive;
   final VoidCallback onTap;
   final String? badge;
+  final bool isHighlight;
 
   @override
   Widget build(BuildContext context) {

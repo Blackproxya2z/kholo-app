@@ -140,6 +140,33 @@ class _BloomAiAssistantScreenState
       ),
       body: Column(
         children: [
+          // Medical Safety Disclaimer Banner
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            color: isDark
+                ? Colors.amber.withValues(alpha: 0.1)
+                : Colors.amber.withValues(alpha: 0.15),
+            child: Row(
+              children: [
+                const Icon(Icons.info_outline_rounded,
+                    size: 14, color: Colors.amber),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    isBn
+                        ? 'এটি শিক্ষামূলক স্বাস্থ্য নির্দেশক। জরুরি প্রয়োজনে চিকিৎসকের পরামর্শ নিন।'
+                        : 'Educational health guide. Consult a physician for emergencies.',
+                    style: GoogleFonts.inter(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
+                      color: isDark ? Colors.amber.shade200 : Colors.brown.shade800,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
           // Chat messages list
           Expanded(
             child: ListView.builder(
@@ -156,6 +183,7 @@ class _BloomAiAssistantScreenState
                   message: msg,
                   lang: lang,
                   isDark: isDark,
+                  onSuggestionTap: _sendUserMessage,
                 );
               },
             ),
@@ -227,22 +255,40 @@ class _BloomAiAssistantScreenState
                             : Colors.black.withValues(alpha: 0.06),
                       ),
                     ),
-                    child: TextField(
-                      controller: _msgCtrl,
-                      style: GoogleFonts.inter(fontSize: 14, color: context.kInk),
-                      onSubmitted: _sendUserMessage,
-                      decoration: InputDecoration(
-                        hintText: isBn
-                            ? 'প্রশ্ন লিখুন (যেমন: Acne কেন হচ্ছে?)...'
-                            : 'Ask a question (e.g. Why is my period late?)...',
-                        hintStyle: GoogleFonts.inter(
-                          fontSize: 13,
-                          color: context.kInkMuted,
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: _msgCtrl,
+                            style: GoogleFonts.inter(fontSize: 14, color: context.kInk),
+                            onSubmitted: _sendUserMessage,
+                            decoration: InputDecoration(
+                              hintText: isBn
+                                  ? 'প্রশ্ন লিখুন (যেমন: Acne কেন হচ্ছে?)...'
+                                  : 'Ask a question (e.g. Why is my period late?)...',
+                              hintStyle: GoogleFonts.inter(
+                                fontSize: 13,
+                                color: context.kInkMuted,
+                              ),
+                              border: InputBorder.none,
+                              contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 16, vertical: 12),
+                            ),
+                          ),
                         ),
-                        border: InputBorder.none,
-                        contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 12),
-                      ),
+                        IconButton(
+                          icon: const Icon(Icons.mic_none_rounded, size: 20),
+                          color: context.kInkMuted,
+                          tooltip: isBn ? 'ভয়েস প্রশ্ন' : 'Voice Query',
+                          onPressed: () {
+                            HapticFeedback.mediumImpact();
+                            final demoVoiceQuery = isBn
+                                ? 'আমার period late কেন?'
+                                : 'How can I improve my skin barrier?';
+                            _msgCtrl.text = demoVoiceQuery;
+                          },
+                        ),
+                      ],
                     ),
                   ),
                 ),
@@ -273,11 +319,13 @@ class _ChatMessageTile extends StatelessWidget {
     required this.message,
     required this.lang,
     required this.isDark,
+    this.onSuggestionTap,
   });
 
   final BloomAiMessage message;
   final BloomLanguage lang;
   final bool isDark;
+  final ValueChanged<String>? onSuggestionTap;
 
   @override
   Widget build(BuildContext context) {
@@ -341,23 +389,48 @@ class _ChatMessageTile extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (message.title != null) ...[
-              Text(
-                message.title!,
-                style: isBn
-                    ? GoogleFonts.hindSiliguri(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
-                        color: KholoColors.wine,
-                      )
-                    : GoogleFonts.playfairDisplay(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
-                        color: KholoColors.wine,
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                if (message.title != null)
+                  Expanded(
+                    child: Text(
+                      message.title!,
+                      style: isBn
+                          ? GoogleFonts.hindSiliguri(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                              color: KholoColors.wine,
+                            )
+                          : GoogleFonts.playfairDisplay(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                              color: KholoColors.wine,
+                            ),
+                    ),
+                  ),
+                IconButton(
+                  icon: const Icon(Icons.copy_rounded, size: 16),
+                  color: context.kInkSubtle,
+                  tooltip: isBn ? 'কপি করুন' : 'Copy Text',
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                  onPressed: () {
+                    HapticFeedback.selectionClick();
+                    final fullText = '${message.title ?? ''}\n\n${message.text}\n\n${message.bulletPoints?.join('\n') ?? ''}';
+                    Clipboard.setData(ClipboardData(text: fullText.trim()));
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(isBn ? 'পরামর্শ কপি করা হয়েছে ✓' : 'Guidance copied ✓'),
+                        duration: const Duration(seconds: 1),
+                        behavior: SnackBarBehavior.floating,
                       ),
-              ),
-              const SizedBox(height: 8),
-            ],
+                    );
+                  },
+                ),
+              ],
+            ),
+            if (message.title != null) const SizedBox(height: 8),
 
             Text(
               message.text,

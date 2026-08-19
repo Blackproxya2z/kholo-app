@@ -716,6 +716,121 @@ Hormones are synthesized from dietary lipids, amino acids, and essential micronu
       targetPhases: ['all'],
       targetConcerns: ['nutrition', 'energy', 'pregnancy', 'anemia'],
     ),
+
+    // 🤰 9. Pregnancy: Trimester Care & Fetal Milestones
+    BloomArticle(
+      id: 'art_preg_trimester_guide',
+      category: BloomCategory.pregnancy,
+      titleEn: 'Pregnancy Week-by-Week: Fetal Growth & Essential Maternal Care',
+      titleBn: 'গর্ভকালীন সপ্তাহভিত্তিক গাইড: ভ্রূণের বিকাশ ও মায়ের প্রয়োজনীয় যত্ন',
+      summaryEn:
+          'Comprehensive medical guide on early pregnancy signs, trimester milestones, prenatal ultrasound scheduling, and red flag warnings.',
+      summaryBn:
+          'গর্ভধারণের প্রথম থেকে শেষ সপ্তাহ পর্যন্ত শিশুর শারীরিক পরিবর্তন, প্রয়োজনীয় আল্ট্রাসনোগ্রাম এবং জরুরি সতর্কতা সংকেত।',
+      contentEn: '''
+### Navigating Your Trimesters with Clinical Confidence
+A standard full-term pregnancy spans 40 weeks, categorized into three distinct clinical trimesters.
+
+### Trimester Breakdown & Clinical Essentials:
+1. **First Trimester (Weeks 1-12):** Neural tube closure requires 400-800mcg of daily Folate. Morning sickness can be managed with small, frequent protein-rich meals and ginger.
+2. **Second Trimester (Weeks 13-26):** Known as the 'golden trimester'. Energy rebounds. Anomaly scan (ultrasound) is typically performed at weeks 18-22 to evaluate fetal anatomy.
+3. **Third Trimester (Weeks 27-40):** Rapid fetal weight gain. Monitor daily kick counts (at least 10 kicks in 2 hours when resting). Prepare a birth plan and hospital bag.
+
+### Red Flag Symptoms Requiring Immediate Medical Attention:
+- Vaginal bleeding or fluid leakage
+- Sudden facial or hand swelling (preeclampsia warning)
+- Severe persistent headaches or visual disturbances
+- Drastic reduction in fetal movements
+''',
+      contentBn: '''
+### গর্ভকালীন ৩টি ট্রাইমেস্টার ও প্রয়োজনীয় যত্ন
+একটি স্বাভাবিক গর্ভকালীন সময় ৪০ সপ্তাহ বা ৯ মাস ১০ দিন স্থায়ী হয়, যা মূলত ৩টি ধাপে বিভক্ত।
+
+### ট্রাইমেস্টার ভিত্তিক গাইড:
+১. **প্রথম ট্রাইমেস্টার (১-১২ সপ্তাহ):** শিশুর মস্তিষ্ক ও স্পাইনাল কর্ড গঠনের জন্য ফলিক অ্যাসিড খাওয়া জরুরি। বমিভাব কমাতে অল্প অল্প করে পুষ্টিকর খাবার খান।
+২. **দ্বিতীয় ট্রাইমেস্টার (১৩-২৬ সপ্তাহ):** ১৮-২২ সপ্তাহের মধ্যে অ্যানোমালি আল্ট্রাসাউন্ড (Anomaly Scan) করিয়ে শিশুর শারীরিক অঙ্গপ্রত্যঙ্গ সঠিক আছে কিনা জেনে নিন।
+৩. **তৃতীয় ট্রাইমেস্টার (২৭-৪০ সপ্তাহ):** বাচ্চার নড়াচড়া খেয়াল রাখুন (প্রতি ২ ঘণ্টায় অন্তত ১০ বার নড়াচড়া স্বাভাবিক)। প্রসবের জন্য প্রয়োজনীয় প্রস্তুতি নিন।
+
+### যেসব লক্ষণ দেখা দিলে অবিলম্বে ডাক্তারের কাছে যাবেন:
+- রক্তপাত বা তরল নির্গমন হওয়া
+- হঠাৎ হাত-পা বা মুখ অতিরিক্ত ফুলে যাওয়া
+- তীব্র মাথাব্যথা বা চোখে ঝাপসা দেখা
+- বাচ্চার নড়াচড়া হঠাৎ কমে যাওয়া
+''',
+      keyTakeawaysEn: [
+        'Folic acid supplementation is vital during the first 12 weeks of gestation.',
+        'Track fetal kick counts daily starting in the 28th week.',
+        'Never ignore sudden swelling, high blood pressure signs, or bleeding.'
+      ],
+      keyTakeawaysBn: [
+        'প্রথম ৩ মাস নিয়মিত ফলিক অ্যাসিড খাওয়া অত্যন্ত জরুরি।',
+        '২৮ সপ্তাহের পর থেকে বাচ্চার নিয়মিত নড়াচড়া গণনা করুন।',
+        'অতিরিক্ত পা ফোলা বা রক্তপাত হলে দ্রুত হাসপাতালে যোগাযোগ করুন।'
+      ],
+      authorOrSource: 'American College of Obstetricians and Gynecologists (ACOG)',
+      sourceUrl: 'https://www.acog.org/womens-health',
+      publishedDate: DateTime(2026, 8, 16),
+      readTimeMinutes: 5,
+      isFeatured: true,
+      tags: ['Pregnancy', 'Fetal Growth', 'ACOG', 'Trimester Guide', 'Motherhood'],
+      targetLifeStages: ['pregnancy'],
+      targetPhases: ['all'],
+      targetConcerns: ['pregnancy', 'fetal_growth', 'prenatal_care'],
+    ),
+
+    // 👶 10. Baby Care: Newborn Essentials & Milestones
+    BloomArticle(
+      id: 'art_baby_newborn_care',
+      category: BloomCategory.babyCare,
+      titleEn: 'Newborn Care & Feeding: Breastfeeding Science, Sleep & Growth Milestones',
+      titleBn: 'নবজাতকের যত্ন ও পুষ্টি: বুকের দুধের গুরুত্ব, ঘুম ও প্রাথমিক বিকাশ',
+      summaryEn:
+          'Pediatric guidelines on exclusive breastfeeding, burping techniques, umbilical cord care, and infant sleep safety (ABC of Safe Sleep).',
+      summaryBn:
+          'প্রথম ৬ মাস শুধু বুকের দুধ খাওয়ানোর নিয়ম, নাভির যত্ন, সঠিক উপায়ে ঢেকুর তোলানো এবং শিশুর নিরাপদ ঘুমের বৈজ্ঞানিক পদ্ধতি।',
+      contentEn: '''
+### Evidence-Based Newborn Care Fundamentals
+The first 1,000 days of life establish the baseline for cognitive, emotional, and physical development.
+
+### Key Pillars of Newborn Health:
+1. **Exclusive Breastfeeding (First 6 Months):** Colostrum (the initial thick golden milk) delivers maternal secretory IgA antibodies, coating the infant gut against pathogens.
+2. **Safe Sleep Protocol (ABC):**
+   - **A (Alone):** Baby should sleep in their own crib/bassinet near parents.
+   - **B (on their Back):** Always place infants on their back to prevent Sudden Infant Death Syndrome (SIDS).
+   - **C (in a Clear Crib):** No pillows, heavy quilts, or loose toys.
+3. **Umbilical Cord Stump Care:** Keep clean and dry. Avoid powders or oils; let it separate naturally in 1-3 weeks.
+4. **Tummy Time:** 2-3 sessions per day (3-5 minutes each while awake and supervised) strengthens neck and shoulder muscles.
+''',
+      contentBn: '''
+### নবজাতকের প্রথম দিনগুলোর বৈজ্ঞানিক যত্ন
+শিশুর জন্মের প্রথম কয়েক সপ্তাহ অত্যন্ত সংবেদনশীল। সঠিক নিয়ম জানলে শিশুকে সুস্থ রাখা অনেক সহজ হয়।
+
+### নবজাতকের যত্নের ৪টি মূল স্তম্ভ:
+১. **প্রথম ৬ মাস শুধুমাত্র বুকের দুধ:** শালদুধে থাকা রোগ প্রতিরোধকারী উপাদান শিশুকে বিভিন্ন ইনফেকশন থেকে আজীবন সুরক্ষা দেয়।
+২. **নিরাপদ ঘুমের নিয়ম (Safe Sleep):** শিশুকে সবসময় চিত করে শক্ত তোষকে শোয়ান। শিশুর বিছানায় অতিরিক্ত ভারী কম্বল বা খেলনা রাখবেন না।
+৩. **নাভির যত্ন:** নাভি সবসময় শুকনো ও পরিষ্কার রাখুন। নাভিতে তেল, হলুদ বা পাউডার লাগাবেন না; এটি এমনিতেই শুকিয়ে ঝরে যাবে।
+৪. **টামি টাইম (Tummy Time):** বাচ্চা জেগে থাকা অবস্থায় দিনে ২-৩ বার পেটের ওপর উপুড় করে রাখুন। এতে শিশুর ঘাড় ও পিঠের পেশী শক্ত হয়।
+''',
+      keyTakeawaysEn: [
+        'Exclusive breastfeeding for 6 months provides optimal nutrition and immunity.',
+        'Always place babies on their back to sleep on a firm, clutter-free surface.',
+        'Keep the umbilical cord stump dry and avoid applying home remedies.'
+      ],
+      keyTakeawaysBn: [
+        'প্রথম ৬ মাস শিশুকে শুধুমাত্র মায়ের দুধ ছাড়া পানিও খাওয়ানোর প্রয়োজন নেই।',
+        'নিরাপদ ঘুমের জন্য শিশুকে সবসময় সোজা পিঠে শোয়ানো উচিত।',
+        'নাভি শুকনা রাখুন এবং কোনো তেল বা মলম লাগানো থেকে বিরত থাকুন।'
+      ],
+      authorOrSource: 'American Academy of Pediatrics (AAP) & WHO',
+      sourceUrl: 'https://www.healthychildren.org',
+      publishedDate: DateTime(2026, 8, 17),
+      readTimeMinutes: 4,
+      isFeatured: true,
+      tags: ['Baby Care', 'Newborn', 'Breastfeeding', 'Safe Sleep', 'Pediatrics'],
+      targetLifeStages: ['postpartum', 'motherhood'],
+      targetPhases: ['all'],
+      targetConcerns: ['baby_care', 'breastfeeding', 'newborn'],
+    ),
   ];
 
   // ═════════════════════════════════════════════════════════════════════════════

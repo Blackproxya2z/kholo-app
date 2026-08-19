@@ -81,20 +81,35 @@ class _TodayScreenState extends ConsumerState<TodayScreen>
   }
 
   Future<void> _checkForUpdate({bool showNotification = true}) async {
-    final currentCode = await UpdateService.currentVersionCode();
-    final currentName = await UpdateService.currentVersionName();
-    final update = await UpdateService.checkForUpdate();
-    if (mounted) {
+    try {
+      final currentCode = await UpdateService.currentVersionCode();
+      final currentName = await UpdateService.currentVersionName();
+      final update = await UpdateService.checkForUpdate();
+      if (!mounted) return;
+
       if (update != null && update.isNewerThan(currentCode, currentName)) {
         final isMandatory = update.isMandatory(currentCode);
+        final prefs = await SharedPreferences.getInstance();
+        final dismissedCode = prefs.getInt('kholo_dismissed_update_code') ?? 0;
+        final dialogShownCode = prefs.getInt('kholo_dialog_shown_version_code') ?? 0;
+        final isDismissed = !isMandatory && dismissedCode >= update.versionCode;
 
         if (showNotification) {
-          await NotificationService.showUpdateNotification(
-            version: update.latestVersion,
-            versionCode: update.versionCode,
-            releaseNotes: update.releaseNotes,
-            force: true,
+          final shouldNotify = await UpdateService.shouldShowUpdateNotification(
+            update.versionCode,
+            currentInstalledCode: currentCode,
           );
+          if (shouldNotify && !isDismissed) {
+            await NotificationService.showUpdateNotification(
+              version: update.latestVersion,
+              versionCode: update.versionCode,
+              title: update.updateTitle,
+              message: update.updateMessage,
+              releaseNotes: update.releaseNotes,
+              force: false,
+            );
+            await UpdateService.recordNotificationSent(update.versionCode);
+          }
         }
 
         if (isMandatory) {
@@ -110,20 +125,23 @@ class _TodayScreenState extends ConsumerState<TodayScreen>
         } else {
           setState(() {
             _currentVersionCode = currentCode;
-            _pendingUpdate = update;
+            _pendingUpdate = isDismissed ? null : update;
           });
 
-          // Show in-app update dialog so user sitting inside app immediately sees it!
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (mounted) {
-              UpdateDialog.show(
-                context,
-                update,
-                currentVersionCode: currentCode,
-                currentVersionName: currentName,
-              );
-            }
-          });
+          // Show in-app update dialog strictly ONCE per release version unless dismissed
+          if (!isDismissed && dialogShownCode < update.versionCode) {
+            await prefs.setInt('kholo_dialog_shown_version_code', update.versionCode);
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) {
+                UpdateDialog.show(
+                  context,
+                  update,
+                  currentVersionCode: currentCode,
+                  currentVersionName: currentName,
+                );
+              }
+            });
+          }
         }
       } else {
         setState(() {
@@ -132,6 +150,8 @@ class _TodayScreenState extends ConsumerState<TodayScreen>
         });
         await NotificationService.cancelUpdateNotification();
       }
+    } catch (e) {
+      debugPrint('[TodayScreen] _checkForUpdate error: $e');
     }
   }
 

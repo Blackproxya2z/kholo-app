@@ -258,6 +258,136 @@ class BloomAiGuideService {
       }
     }
 
+    // 5. Skin Barrier / স্কিন ব্যারিয়ার
+    if (q.contains('barrier') ||
+        q.contains('ব্যারিয়ার') ||
+        q.contains('damaged skin') ||
+        q.contains('লালচে') ||
+        q.contains('irritation')) {
+      if (isBn) {
+        return BloomAiMessage(
+          id: _uuid.v4(),
+          isUser: false,
+          title: '✨ স্কিন ব্যারিয়ার রিপেয়ার করার কার্যকরী উপায়',
+          text:
+              'ত্বকের সুরক্ষা স্তর (Skin Barrier) ক্ষতিগ্রস্ত হলে ত্বক সংবেদনশীল, শুষ্ক ও লালচে হয়ে যায়। ব্যারিয়ার দ্রুত সুস্থ করার উপায়:',
+          bulletPoints: [
+            'কঠিন ফেসওয়াশ ও সব ধরনের এসিড এক্সফোলিয়েটর (AHA/BHA/Retinol) বন্ধ রাখুন',
+            'সেরামাইড (Ceramides), ফ্যাটি এসিড ও হায়ালুরনিক অ্যাসিডযুক্ত ময়েশ্চারাইজার ব্যবহার করুন',
+            'দিনের বেলা সবসময় জেন্টল মিনারেল সানস্ক্রিন (SPF 30+) ব্যবহার করুন',
+            'কুসুম গরম পানি দিয়ে মুখ ধোবেন, অতিরিক্ত গরম পানি এড়িয়ে চলুন',
+          ],
+          clinicalSource: 'British Association of Dermatologists',
+          isMedicalDisclaimer: true,
+          timestamp: DateTime.now(),
+        );
+      } else {
+        return BloomAiMessage(
+          id: _uuid.v4(),
+          isUser: false,
+          title: '✨ Clinical Skin Barrier Repair Protocol',
+          text:
+              'A compromised stratum corneum leads to transepidermal water loss, redness, and stinging. Follow this restorative regimen:',
+          bulletPoints: [
+            'Halt all active chemical exfoliants (AHA/BHA) and retinoids temporarily',
+            'Apply moisturizers enriched with ceramides, cholesterol, and fatty acids (3:1:1 ratio)',
+            'Wear a broad-spectrum mineral sunscreen (SPF 30+) every morning',
+            'Cleanse only with lukewarm water and mild, soap-free cleansers',
+          ],
+          clinicalSource: 'British Association of Dermatologists',
+          isMedicalDisclaimer: true,
+          timestamp: DateTime.now(),
+        );
+      }
+    }
+
+    // 6. Pregnancy Weeks / গর্ভকালীন সপ্তাহ (e.g. Week 20)
+    if (q.contains('pregnancy') ||
+        q.contains('week') ||
+        q.contains('সপ্তাহ') ||
+        q.contains('গর্ভ') ||
+        q.contains('ভ্রূণ')) {
+      if (isBn) {
+        return BloomAiMessage(
+          id: _uuid.v4(),
+          isUser: false,
+          title: '🤰 গর্ভকালীন সময় ও ২০তম সপ্তাহের গুরুত্বপূর্ণ বিষয়',
+          text:
+              'গর্ভকালীন ২০তম সপ্তাহকে বলা হয় অর্ধেক মাইলফলক। এই সময়ে ভ্রূণ ও মায়ের শরীরে উল্লেখযোগ্য পরিবর্তন আসে:',
+          bulletPoints: [
+            'বাচ্চা প্রায় কলা বা ছোট মিষ্টি কুমড়ার সমান হয় এবং শব্দ শুনতে পায়',
+            '১৮-২২ সপ্তাহের মধ্যে অ্যানোমালি আল্ট্রাসাউন্ড (Anomaly Scan) করানো আবশ্যক',
+            'মায়ের পেটে হালকা নড়াচড়া (Quickening) স্পষ্ট অনুভূত হতে শুরু করে',
+            'পর্যাপ্ত পানি, আয়রন ও ক্যালসিয়ামযুক্ত খাবার নিশ্চিত করুন',
+          ],
+          clinicalSource: 'American College of Obstetricians and Gynecologists (ACOG)',
+          isMedicalDisclaimer: true,
+          timestamp: DateTime.now(),
+        );
+      } else {
+        return BloomAiMessage(
+          id: _uuid.v4(),
+          isUser: false,
+          title: '🤰 Pregnancy Week 20 & Mid-Pregnancy Clinical Essentials',
+          text:
+              'Week 20 marks the exact halfway milestone of gestation. Key fetal and maternal physiological developments include:',
+          bulletPoints: [
+            'Fetus measures approximately 16cm from crown to rump with functional hearing',
+            'The detailed mid-pregnancy Anomaly Scan (ultrasound) evaluates organ structure',
+            'Maternal sensation of fetal flutter/movement (quickening) becomes distinct',
+            'Maintain daily prenatal vitamins with bioavailable Iron, Calcium, and DHA',
+          ],
+          clinicalSource: 'American College of Obstetricians and Gynecologists (ACOG)',
+          isMedicalDisclaimer: true,
+          timestamp: DateTime.now(),
+        );
+      }
+    }
+
+    // 7. Baby Care & Feeding / শিশুর যত্ন
+    if (q.contains('baby') ||
+        q.contains('শিশুর') ||
+        q.contains('নবজাতক') ||
+        q.contains('feeding') ||
+        q.contains('দুধ') ||
+        q.contains('infant')) {
+      if (isBn) {
+        return BloomAiMessage(
+          id: _uuid.v4(),
+          isUser: false,
+          title: '👶 নবজাতকের যত্ন ও পুষ্টি নির্দেশিকা',
+          text:
+              'শিশুর প্রথম দিনগুলোতে সঠিক যত্ন শিশুর সুস্থ বিকাশ নিশ্চিত করে:',
+          bulletPoints: [
+            'প্রথম ৬ মাস শুধুমাত্র মায়ের বুকের দুধ খাওয়ান (পানি বা অন্য খাবারের প্রয়োজন নেই)',
+            'প্রতিবার দুধ খাওয়ানোর পর সোজা করে কাঁধে নিয়ে ঢেকুর তোলান',
+            'নিরাপদ ঘুমের জন্য সবসময় সোজা পিঠে (চিত করে) শুইয়ে দিন',
+            'নাভি শুকনা রাখুন এবং কোনো মলম বা তেল লাগাবেন না',
+          ],
+          clinicalSource: 'American Academy of Pediatrics (AAP)',
+          isMedicalDisclaimer: true,
+          timestamp: DateTime.now(),
+        );
+      } else {
+        return BloomAiMessage(
+          id: _uuid.v4(),
+          isUser: false,
+          title: '👶 Evidence-Based Infant Care & Nutrition',
+          text:
+              'Essential pediatric guidelines for newborn wellness and developmental support:',
+          bulletPoints: [
+            'Exclusive breastfeeding for the initial 6 months delivers complete antibodies and nutrition',
+            'Burp baby upright after every feeding to prevent colic and reflux',
+            'Practice Safe Sleep: Place infant on back on a firm, unencumbered surface',
+            'Keep the umbilical stump clean and dry until natural detachment',
+          ],
+          clinicalSource: 'American Academy of Pediatrics (AAP)',
+          isMedicalDisclaimer: true,
+          timestamp: DateTime.now(),
+        );
+      }
+    }
+
     // Default fallback guidance
     if (isBn) {
       return BloomAiMessage(

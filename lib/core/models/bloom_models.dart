@@ -32,7 +32,6 @@ enum BloomCategory {
       'Hormones',
       'PCOS Awareness',
       'Fertility',
-      'Pregnancy Care',
       'Postpartum Recovery'
     ],
   ),
@@ -65,6 +64,36 @@ enum BloomCategory {
       'Body Education',
       'Relationship Wellness',
       'Scientific Body Facts'
+    ],
+  ),
+  pregnancy(
+    id: 'pregnancy',
+    titleEn: 'Pregnancy',
+    titleBn: 'গর্ভকালীন যত্ন',
+    icon: '🤰',
+    accentColor: Color(0xFF8B5E83),
+    gradient: [Color(0xFFA87C9E), Color(0xFF8B5E83)],
+    subcategories: [
+      'Trimester Guide',
+      'Fetal Development',
+      'Prenatal Nutrition',
+      'Labor Preparation',
+      'Safe Exercises'
+    ],
+  ),
+  babyCare(
+    id: 'baby_care',
+    titleEn: 'Baby Care',
+    titleBn: 'শিশুর যত্ন',
+    icon: '👶',
+    accentColor: Color(0xFF5B8A99),
+    gradient: [Color(0xFF7BAAB8), Color(0xFF5B8A99)],
+    subcategories: [
+      'Newborn Essentials',
+      'Breastfeeding & Nutrition',
+      'Sleep Training',
+      'Growth Milestones',
+      'Vaccination Guide'
     ],
   ),
   menHealth(
