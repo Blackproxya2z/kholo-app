@@ -17,6 +17,10 @@ import '../features/checkout/checkout_screen.dart';
 import '../features/profile/profile_screen.dart';
 import '../features/skin_scan/skin_scan_screen.dart';
 import '../features/update/mandatory_update_screen.dart';
+import '../features/bloom/bloom_hub_screen.dart';
+import '../features/bloom/bloom_article_detail_screen.dart';
+import '../features/bloom/bloom_search_screen.dart';
+import '../features/bloom/bloom_ai_assistant_screen.dart';
 import '../core/models/app_update.dart';
 import '../shared/widgets/kholo_bottom_nav.dart';
 import '../core/services/firebase_analytics_service.dart';
@@ -161,6 +165,28 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: '/skin-scan',
             pageBuilder: (context, state) =>
                 _slide(state, const SkinScanScreen()),
+          ),
+          GoRoute(
+            path: '/bloom',
+            pageBuilder: (context, state) =>
+                _slide(state, const BloomHubScreen()),
+          ),
+          GoRoute(
+            path: '/bloom/article/:articleId',
+            pageBuilder: (context, state) {
+              final id = state.pathParameters['articleId']!;
+              return _slide(state, BloomArticleDetailScreen(articleId: id));
+            },
+          ),
+          GoRoute(
+            path: '/bloom/search',
+            pageBuilder: (context, state) =>
+                _slide(state, const BloomSearchScreen()),
+          ),
+          GoRoute(
+            path: '/bloom/ai-guide',
+            pageBuilder: (context, state) =>
+                _slide(state, const BloomAiAssistantScreen()),
           ),
         ],
       ),

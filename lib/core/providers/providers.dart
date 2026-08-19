@@ -10,6 +10,7 @@ import '../models/product.dart';
 
 export 'dynamic_config_provider.dart';
 export 'update_provider.dart';
+export 'bloom_providers.dart';
 
 // ── Infrastructure ────────────────────────────────────────────────────────────
 

@@ -22,6 +22,7 @@ import '../../core/services/brand_emotional_state_service.dart';
 import 'widgets/animated_cycle_ring.dart';
 import 'widgets/liquid_flow_animation.dart';
 import 'widgets/daily_hormonal_insight_card.dart';
+import 'widgets/bloom_today_spotlight_card.dart';
 
 /// Today dashboard — award-winning redesign with:
 /// • Dynamic brand emotional connection & breathing avatar
@@ -223,6 +224,9 @@ class _TodayScreenState extends ConsumerState<TodayScreen>
             // ── AI Skin Doctor Scanner Entry ──────────────────────────────
             _AiSkinScannerBanner(onTap: () => context.go('/skin-scan')),
             const SizedBox(height: 20),
+
+            // ── KHOLO Bloom Health Hub Spotlight ──────────────────────────
+            const BloomTodaySpotlightCard(),
 
             // ── Phase / Cycle Section ─────────────────────────────────────
             if (phaseCtx != null) ...[

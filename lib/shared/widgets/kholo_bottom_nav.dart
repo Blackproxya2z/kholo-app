@@ -102,6 +102,8 @@ class _KholoBottomNavState extends ConsumerState<KholoBottomNav> {
               currentPath == '/cart' ||
               currentPath == '/checkout') {
             context.go('/shop');
+          } else if (currentPath.startsWith('/bloom/')) {
+            context.go('/bloom');
           } else {
             context.go('/app');
           }

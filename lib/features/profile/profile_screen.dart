@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../app/theme/colors.dart';
 import '../../core/models/health_profile.dart';
+import '../../core/models/bloom_models.dart';
 import '../../core/providers/providers.dart';
 import '../../core/providers/app_settings_provider.dart';
 import '../../core/services/biometric_service.dart';
@@ -174,6 +175,13 @@ class ProfileScreen extends ConsumerWidget {
               );
             }).toList(),
           ),
+
+          const SizedBox(height: 20),
+
+          // ── Bloom Health Hub & Language ──────────────────────────────
+          const _SectionTitle('Bloom health discovery & language'),
+          const SizedBox(height: 12),
+          const _BloomHealthHubSettingCard(),
 
           const SizedBox(height: 20),
 
@@ -1352,6 +1360,110 @@ class _SyncStatusCard extends ConsumerWidget {
     if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
     if (diff.inHours < 24) return '${diff.inHours}h ago';
     return '${dt.day}/${dt.month}/${dt.year}';
+  }
+}
+
+class _BloomHealthHubSettingCard extends ConsumerWidget {
+  const _BloomHealthHubSettingCard();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final lang = ref.watch(bloomLanguageProvider);
+    final isBn = lang == BloomLanguage.bn;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: context.kCard,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: context.kDivider),
+      ),
+      child: Column(
+        children: [
+          // Open Bloom Health Hub Tile
+          ListTile(
+            leading: Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: KholoColors.blush.withValues(alpha: 0.35),
+                shape: BoxShape.circle,
+              ),
+              child: const Center(
+                child: Text('🌸', style: TextStyle(fontSize: 16)),
+              ),
+            ),
+            title: Text(
+              'KHOLO Bloom Health Hub',
+              style: GoogleFonts.inter(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: context.kInk,
+              ),
+            ),
+            subtitle: Text(
+              isBn ? 'দৈনিক স্বাস্থ্য শিক্ষা ও টিপস' : 'Daily health education & tips',
+              style: GoogleFonts.inter(
+                fontSize: 12,
+                color: context.kInkMuted,
+              ),
+            ),
+            trailing: const Icon(Icons.chevron_right_rounded),
+            onTap: () {
+              HapticFeedback.selectionClick();
+              context.push('/bloom');
+            },
+          ),
+          Divider(height: 1, color: context.kDivider),
+
+          // Language Switcher Row
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.language_rounded, size: 18, color: context.kInkMuted),
+                    const SizedBox(width: 12),
+                    Text(
+                      isBn ? 'কন্টেন্ট ভাষা (Language)' : 'Content Language',
+                      style: GoogleFonts.inter(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w500,
+                        color: context.kInk,
+                      ),
+                    ),
+                  ],
+                ),
+                SegmentedButton<BloomLanguage>(
+                  segments: const [
+                    ButtonSegment(
+                      value: BloomLanguage.bn,
+                      label: Text('বাংলা', style: TextStyle(fontSize: 12)),
+                    ),
+                    ButtonSegment(
+                      value: BloomLanguage.en,
+                      label: Text('EN', style: TextStyle(fontSize: 12)),
+                    ),
+                  ],
+                  selected: {lang},
+                  onSelectionChanged: (selected) {
+                    HapticFeedback.selectionClick();
+                    ref
+                        .read(bloomLanguageProvider.notifier)
+                        .setLanguage(selected.first);
+                  },
+                  style: const ButtonStyle(
+                    visualDensity: VisualDensity.compact,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 
