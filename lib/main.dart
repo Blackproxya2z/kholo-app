@@ -21,6 +21,9 @@ Future<void> main() async {
   // Initialise local notifications before runApp
   await NotificationService.init();
 
+  // Proactively check for newer release on launch and trigger system notification
+  UpdateService.performProactiveUpdateCheck(notifyUser: true);
+
   runApp(
     ProviderScope(
       overrides: [

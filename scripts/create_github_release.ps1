@@ -46,13 +46,22 @@ try {
 
 $apkPath = "build\app\outputs\flutter-apk\app-release.apk"
 if (Test-Path $apkPath) {
-    Write-Host "Uploading $apkPath to release assets..."
+    Write-Host "Checking existing release assets for $($release.id)..."
     $uploadHeaders = @{
         'Authorization' = "Bearer $token"
         'Content-Type' = 'application/vnd.android.package-archive'
         'User-Agent' = 'KHOLO-Release-Manager'
     }
     
+    $existingAssets = Invoke-RestMethod -Uri "https://api.github.com/repos/Blackproxya2z/kholo-app/releases/$($release.id)/assets" -Method Get -Headers $headers
+    foreach ($a in $existingAssets) {
+        if ($a.name -eq 'app-release.apk') {
+            Write-Host "Deleting existing asset ID $($a.id)..."
+            Invoke-RestMethod -Uri "https://api.github.com/repos/Blackproxya2z/kholo-app/releases/assets/$($a.id)" -Method Delete -Headers $headers
+        }
+    }
+
+    Write-Host "Uploading latest $apkPath to release assets..."
     $apkBytes = [System.IO.File]::ReadAllBytes((Resolve-Path $apkPath).Path)
     $asset = Invoke-RestMethod -Uri $uploadUrl -Method Post -Headers $uploadHeaders -Body $apkBytes
     Write-Host "APK uploaded successfully! Download URL: $($asset.browser_download_url)"

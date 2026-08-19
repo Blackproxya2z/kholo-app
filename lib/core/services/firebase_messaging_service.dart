@@ -12,22 +12,29 @@ import 'notification_service.dart';
 ///    - Category C: User reminders (kholo_reminder)
 /// 3. Standard topic subscription (`kholo_updates`, `kholo_announcements`, `kholo_reminders`).
 /// 4. Direct integration with KHOLO local notification engine.
+/// 5. Cold-start termination click handling via `getInitialMessage()`.
 /// ────────────────────────────────────────────────────────────────────────────
 
 @pragma('vm:entry-point')
 Future<void> kholoFirebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  debugPrint('[FCM Background] Received message ID: ${message.messageId}');
   final data = message.data;
-  final title = message.notification?.title ?? data['title'] ?? 'KHOLO Health Update';
-  final body = message.notification?.body ?? data['body'] ?? 'Important announcement from KHOLO';
+  final title = message.notification?.title ?? data['title'] ?? '🌸 New KHOLO Update Available';
+  final body = message.notification?.body ?? data['body'] ?? 'KHOLO v1.4.0 is ready. Update now.';
   final payload = data['payload'] ?? data['action'] ?? 'kholo_update';
 
+  debugPrint('NOTIFICATION RECEIVED (Background): ID=${message.messageId}, Title=$title, Payload=$payload');
+
+  // Ensure notification engine is initialized in background isolate
+  await NotificationService.init();
+
   if (payload == 'kholo_update') {
-    final version = data['latest_version'] ?? '1.3.0';
-    final code = int.tryParse(data['version_code']?.toString() ?? '20') ?? 20;
+    final version = data['latest_version'] ?? '1.4.0';
+    final code = int.tryParse(data['version_code']?.toString() ?? '22') ?? 22;
     await NotificationService.showUpdateNotification(
       version: version,
       versionCode: code,
+      title: title,
+      message: body,
       releaseNotes: body,
       force: data['force_update'] == 'true',
     );
@@ -83,18 +90,21 @@ class FirebaseMessagingService {
 
       // Handle foreground messages
       FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
-        debugPrint('[FCM Foreground] Received: ${message.notification?.title}');
         final data = message.data;
-        final title = message.notification?.title ?? data['title'] ?? 'KHOLO Alert';
-        final body = message.notification?.body ?? data['body'] ?? '';
+        final title = message.notification?.title ?? data['title'] ?? '🌸 New KHOLO Update Available';
+        final body = message.notification?.body ?? data['body'] ?? 'KHOLO v1.4.0 is ready. Update now.';
         final payload = data['payload'] ?? data['action'] ?? 'kholo_update';
 
+        debugPrint('NOTIFICATION RECEIVED (Foreground): Title=$title, Body=$body, Payload=$payload');
+
         if (payload == 'kholo_update') {
-          final version = data['latest_version'] ?? '1.3.0';
-          final code = int.tryParse(data['version_code']?.toString() ?? '20') ?? 20;
+          final version = data['latest_version'] ?? '1.4.0';
+          final code = int.tryParse(data['version_code']?.toString() ?? '22') ?? 22;
           await NotificationService.showUpdateNotification(
             version: version,
             versionCode: code,
+            title: title,
+            message: body,
             releaseNotes: body,
             force: data['force_update'] == 'true',
           );
@@ -120,17 +130,29 @@ class FirebaseMessagingService {
         }
       });
 
-      // Handle notification opened app event
+      // Handle notification opened app event (from background state)
       FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
-        debugPrint('[FCM onMessageOpenedApp] Action triggered: ${message.data}');
         final payload = message.data['payload'] ?? message.data['action'] ?? 'kholo_update';
+        debugPrint('NOTIFICATION OPENED (Background Resume): Action=$payload, Data=${message.data}');
         NotificationService.onNotificationTap?.call(payload);
       });
+
+      // Handle notification opened app event (from terminated/cold start state)
+      try {
+        final initialMessage = await messaging.getInitialMessage();
+        if (initialMessage != null) {
+          final payload = initialMessage.data['payload'] ?? initialMessage.data['action'] ?? 'kholo_update';
+          debugPrint('NOTIFICATION OPENED (Cold Start Launch): Action=$payload, Data=${initialMessage.data}');
+          NotificationService.onNotificationTap?.call(payload);
+        }
+      } catch (e) {
+        debugPrint('[FCM] getInitialMessage error: $e');
+      }
 
       // Retrieve FCM Token
       try {
         _fcmToken = await messaging.getToken();
-        debugPrint('[FCM Token]: $_fcmToken');
+        debugPrint('FCM TOKEN: $_fcmToken');
       } catch (e) {
         debugPrint('[FCM] Token retrieval skipped: $e');
       }
@@ -152,9 +174,9 @@ class FirebaseMessagingService {
     try {
       if (kIsWeb) return;
       await FirebaseMessaging.instance.subscribeToTopic(topic);
-      debugPrint('[FCM] Subscribed to topic: $topic');
+      debugPrint('SUBSCRIPTION STATUS: Subscribed to topic: $topic');
     } catch (e) {
-      debugPrint('[FCM] Error subscribing to topic $topic: $e');
+      debugPrint('SUBSCRIPTION STATUS (Warning): Error subscribing to topic $topic: $e');
     }
   }
 
@@ -163,9 +185,9 @@ class FirebaseMessagingService {
     try {
       if (kIsWeb) return;
       await FirebaseMessaging.instance.unsubscribeFromTopic(topic);
-      debugPrint('[FCM] Unsubscribed from topic: $topic');
+      debugPrint('SUBSCRIPTION STATUS: Unsubscribed from topic: $topic');
     } catch (e) {
-      debugPrint('[FCM] Error unsubscribing from topic $topic: $e');
+      debugPrint('SUBSCRIPTION STATUS (Warning): Error unsubscribing from topic $topic: $e');
     }
   }
 }

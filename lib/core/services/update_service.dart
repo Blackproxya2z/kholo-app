@@ -53,9 +53,14 @@ class UpdateDownloadException implements Exception {
 /// 7. Post-update verification, notification dismissal & one-time deduplication.
 /// ────────────────────────────────────────────────────────────────────────────
 class UpdateService {
-  /// GitHub raw version manifest endpoint (CDN-backed).
+  /// GitHub raw version manifest endpoints (Primary repo + releases repo CDN).
+  static const List<String> versionManifestEndpoints = [
+    'https://raw.githubusercontent.com/Blackproxya2z/kholo-app/main/version.json',
+    'https://raw.githubusercontent.com/Blackproxya2z/kholo-releases/main/version.json',
+  ];
+
   static const String versionManifestUrl =
-      'https://raw.githubusercontent.com/Blackproxya2z/kholo-releases/main/version.json';
+      'https://raw.githubusercontent.com/Blackproxya2z/kholo-app/main/version.json';
 
   static const String _keyInstalledVersion = 'kholo_installed_version_code';
   static const String _keyLastNotifiedVersion = 'kholo_last_notified_version_code';
@@ -150,27 +155,35 @@ class UpdateService {
       final currentName = await currentVersionName();
       AppUpdate? candidateUpdate;
 
-      // 1. Try fetching from GitHub CDN endpoint
-      try {
-        final cacheBuster = DateTime.now().millisecondsSinceEpoch;
-        final uri = Uri.parse('$versionManifestUrl?nocache=$cacheBuster');
-        final response = await http
-            .get(
-              uri,
-              headers: {
-                'Accept': 'application/json',
-                'Cache-Control': 'no-cache, no-store, must-revalidate',
-                'Pragma': 'no-cache',
-              },
-            )
-            .timeout(const Duration(seconds: 10));
+      // 1. Try fetching from GitHub CDN endpoints with cache buster
+      for (final endpoint in versionManifestEndpoints) {
+        try {
+          final cacheBuster = DateTime.now().millisecondsSinceEpoch;
+          final uri = Uri.parse('$endpoint?nocache=$cacheBuster');
+          final response = await http
+              .get(
+                uri,
+                headers: {
+                  'Accept': 'application/json',
+                  'Cache-Control': 'no-cache, no-store, must-revalidate',
+                  'Pragma': 'no-cache',
+                },
+              )
+              .timeout(const Duration(seconds: 8));
 
-        if (response.statusCode == 200) {
-          final json = jsonDecode(response.body) as Map<String, dynamic>;
-          candidateUpdate = AppUpdate.fromJson(json);
+          if (response.statusCode == 200) {
+            final json = jsonDecode(response.body) as Map<String, dynamic>;
+            final parsed = AppUpdate.fromJson(json);
+            if (candidateUpdate == null || parsed.versionCode > candidateUpdate.versionCode) {
+              candidateUpdate = parsed;
+            }
+            if (candidateUpdate.versionCode >= 22) {
+              break; // Found latest release manifest
+            }
+          }
+        } catch (e) {
+          debugPrint('[UpdateService] Manifest endpoint error ($endpoint): $e');
         }
-      } catch (e) {
-        debugPrint('[UpdateService] CDN fetch error, checking Remote Config fallback: $e');
       }
 
       // 2. Fallback to Firebase Remote Config if CDN is unreachable or older
@@ -215,6 +228,39 @@ class UpdateService {
     } catch (e, stack) {
       debugPrint('[UpdateService] checkForUpdate error: $e');
       FirebaseCrashlyticsService.recordNonFatalError(e, stack, reason: 'checkForUpdate failure');
+      return null;
+    }
+  }
+
+  /// Performs an active update check upon app launch or foreground resume.
+  /// If a newer version is found and [notifyUser] is true, triggers a local push notification.
+  static Future<AppUpdate?> performProactiveUpdateCheck({bool notifyUser = true}) async {
+    try {
+      final update = await checkForUpdate();
+      if (update != null) {
+        final currentCode = await currentVersionCode();
+        final shouldNotify = await shouldShowUpdateNotification(
+          update.versionCode,
+          currentInstalledCode: currentCode,
+        );
+
+        debugPrint('[UpdateService] Proactive check found update v${update.latestVersion} (Build ${update.versionCode}). shouldNotify=$shouldNotify');
+
+        if (shouldNotify && notifyUser) {
+          await NotificationService.showUpdateNotification(
+            version: update.latestVersion,
+            versionCode: update.versionCode,
+            title: update.updateTitle,
+            message: update.updateMessage,
+            releaseNotes: update.releaseNotes,
+            force: update.isMandatory(currentCode),
+          );
+          await recordNotificationSent(update.versionCode);
+        }
+      }
+      return update;
+    } catch (e) {
+      debugPrint('[UpdateService] performProactiveUpdateCheck error: $e');
       return null;
     }
   }
