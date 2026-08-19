@@ -1,4 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="ic_launcher_background">#4F46E5</color>
+    <color name="kholo_wine">#92003A</color>
+    <color name="kholo_blush">#FBECE8</color>
+    <color name="kholo_terracotta">#8C4336</color>
+    <color name="kholo_sage">#59746A</color>
 </resources>
